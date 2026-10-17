@@ -952,7 +952,7 @@ function QuizItem({ id, q, a, value, onChange, i }) {
 /* =========================================================
    LESSONS: markdown per week in lessons/wN.md, one section per concept, delimited by "@@ <item id>"
    ========================================================= */
-const LESSON_WEEKS = [1, 2, 3, 4, 5, 6];
+const LESSON_WEEKS = [1, 2, 3, 4, 5, 6, 7, 8];
 const hasLesson = n => LESSON_WEEKS.includes(n);
 const lessonWeek = id => { const m = /^w(\d+)-learn-/.exec(id || ''); const n = m ? Number(m[1]) : 0; return hasLesson(n) ? n : 0; };
 const lessonCache = {};
