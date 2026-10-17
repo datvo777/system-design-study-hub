@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>System Design Study Hub</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,14 +54,61 @@
   *::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; border: 2px solid var(--bg); }
   code.inl { font-family: var(--font-data); font-size: .86em; background: rgba(148, 163, 184, .12); border: 1px solid rgba(148, 163, 184, .18); padding: 0 .3em; border-radius: 4px; color: #c7d2fe; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  /* ---- Lesson reader: long-form reading column ---- */
+  .lesson { font-size: 15.5px; line-height: 1.75; color: #cbd5e1; max-width: 74ch; }
+  .lesson > * + * { margin-top: .9em; }
+  .lesson h2 { margin-top: 2em; font-size: 1.15em; font-weight: 600; color: #f1f5f9; padding-bottom: .35em; border-bottom: 1px solid var(--line); }
+  .lesson h2:first-child { margin-top: 0; }
+  .lesson h3 { margin-top: 1.5em; font-size: 1em; font-weight: 600; color: #e2e8f0; }
+  .lesson strong { color: #f1f5f9; font-weight: 600; }
+  .lesson a { color: #a5b4fc; text-decoration: underline; text-underline-offset: 3px; }
+  .lesson ul, .lesson ol { padding-left: 1.4em; }
+  .lesson ul { list-style: disc; } .lesson ol { list-style: decimal; }
+  .lesson li + li { margin-top: .35em; }
+  .lesson li::marker { color: #64748b; }
+  .lesson code { font-family: var(--font-data); font-size: .85em; background: rgba(148,163,184,.12); border: 1px solid rgba(148,163,184,.18); padding: 0 .3em; border-radius: 4px; color: #c7d2fe; }
+  .lesson pre { background: #020617; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+  .lesson pre code { background: none; border: 0; padding: 0; color: #e2e8f0; font-size: inherit; }
+  .lesson table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 14px; line-height: 1.55; }
+  .lesson th, .lesson td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; min-width: 110px; }
+  .lesson th { background: #0f172a; color: #f1f5f9; font-weight: 600; }
+  .lesson blockquote { border-left: 3px solid #f59e0b; background: rgba(245,158,11,.06); padding: 10px 14px; border-radius: 0 8px 8px 0; color: #fde68a; }
+  .lesson blockquote p + p { margin-top: .6em; }
+  .lesson hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+  .lesson details { border: 1px solid var(--line); border-radius: 8px; background: rgba(2,6,23,.6); padding: 10px 14px; }
+  .lesson details + details { margin-top: .6em; }
+  .lesson summary { cursor: pointer; font-weight: 500; color: #f1f5f9; list-style: none; }
+  .lesson summary::-webkit-details-marker { display: none; }
+  .lesson summary::before { content: "Q"; font-family: var(--font-data); font-size: 12px; color: #fbbf24; margin-right: .6em; }
+  .lesson details[open] summary { margin-bottom: .6em; padding-bottom: .5em; border-bottom: 1px dashed var(--line); }
+  .lesson details[open] > :not(summary) { color: #d1fae5; }
+  .lesson .tldr { border: 1px solid rgba(99,102,241,.4); background: rgba(99,102,241,.08); border-radius: 10px; padding: 12px 16px; color: #e0e7ff; }
+  .lesson figure { margin: 1.4em 0; }
+  .lesson figure svg { display: block; width: 100%; height: auto; max-width: 680px; }
+  .lesson figcaption { margin-top: .5em; font-size: 13px; color: var(--muted); }
+  .dg .bx { fill: #0f172a; stroke: #334155; stroke-width: 1.2; }
+  .dg .bx.hl { fill: #12163a; stroke: #6366f1; }
+  .dg .bx.ok { fill: #04211d; stroke: #10b981; }
+  .dg .bx.bad { fill: #240b18; stroke: #f43f5e; }
+  .dg .bx.warn { fill: #21180b; stroke: #f59e0b; }
+  .dg text { fill: #e2e8f0; font-family: var(--font-ui); font-size: 13px; }
+  .dg text.s { fill: #94a3b8; font-size: 11.5px; }
+  .dg text.m { font-family: var(--font-data); font-size: 11.5px; fill: #c7d2fe; }
+  .dg .ln { stroke: #64748b; stroke-width: 1.4; fill: none; }
+  .dg .ln.hl { stroke: #818cf8; } .dg .ln.bad { stroke: #f43f5e; stroke-dasharray: 5 4; } .dg .ln.ok { stroke: #34d399; }
+  .dg .ar { marker-end: url(#arr); }
   #boot { padding: 48px 24px; color: var(--muted); font-family: var(--font-data); font-size: 13px; }
 </style>
 
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs></svg>
 <div id="root"><div id="boot">Đang nạp System Design Study Hub…</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script>
 (function () {
 'use strict';
@@ -90,6 +142,7 @@ const ICONS = {
   skip: [['polygon', { points: '5 4 15 12 5 20 5 4' }], ['line', { x1: 19, x2: 19, y1: 5, y2: 19 }]],
   left: [['path', { d: 'm15 18-6-6 6-6' }]],
   right: [['path', { d: 'm9 18 6-6-6-6' }]],
+  cap: [['path', { d: 'M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z' }], ['path', { d: 'M22 10v6' }], ['path', { d: 'M6 12.5V16a6 3 0 0 0 12 0v-3.5' }]],
   book: [['path', { d: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20' }]],
   flask: [['path', { d: 'M10 2v7.31M14 9.3V1.99M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0' }]],
   target: [['circle', { cx: 12, cy: 12, r: 10 }], ['circle', { cx: 12, cy: 12, r: 6 }], ['circle', { cx: 12, cy: 12, r: 2 }]],
@@ -460,7 +513,7 @@ const DEFAULT_STATE = {
   hikari: { pods: 50, pool: 20, maxConn: 100, cores: 8, spindle: 1 },
   story: '', rhythm: {},
   mock: { problem: '', duration: 45, sections: ['', '', '', '', '', '', ''], scores: [0, 0, 0, 0, 0] },
-  history: [], cards: [], cardEdits: {}, cardStatus: {}, gaps: [],
+  history: [], cards: [], cardEdits: {}, cardStatus: {}, gaps: [], lnotes: {},
   calc: { dau: 10, read: 20, write: 2, size: 1000, years: 5 },
   ui: { page: 'dashboard', week: 1, phase: 0 }
 };
@@ -470,7 +523,7 @@ function mergeState(raw) {
   const obj = (k) => Object.assign({}, d[k], r[k] && typeof r[k] === 'object' && !Array.isArray(r[k]) ? r[k] : {});
   return Object.assign({}, d, r, {
     checks: obj('checks'), quiz: obj('quiz'), links: obj('links'), rhythm: obj('rhythm'),
-    cardEdits: obj('cardEdits'), cardStatus: obj('cardStatus'),
+    cardEdits: obj('cardEdits'), cardStatus: obj('cardStatus'), lnotes: obj('lnotes'),
     bench: { w4: Array.isArray(r.bench && r.bench.w4) ? r.bench.w4 : d.bench.w4, w8: Object.assign({ rest: {}, grpc: {} }, r.bench && r.bench.w8) },
     hikari: obj('hikari'), calc: obj('calc'), ui: obj('ui'),
     mock: Object.assign({}, d.mock, r.mock, {
@@ -573,11 +626,15 @@ function Modal({ title, onClose, children, wide }) {
       <div className="p-5">${children}</div>
     </div></div>`;
 }
-function CheckRow({ id, text, checked, onToggle }) {
-  return html`<label htmlFor=${id} className="group flex cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-slate-800/50">
+function CheckRow({ id, text, checked, onToggle, onLearn }) {
+  const row = html`<label htmlFor=${id} className=${'group flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-slate-800/50'}>
     <input id=${id} type="checkbox" checked=${!!checked} onChange=${e => onToggle(id, e.target.checked)} className="mt-[3px] h-4 w-4 shrink-0 rounded border-slate-600 accent-indigo-500" />
     <span className=${`text-sm leading-relaxed ${checked ? 'text-slate-500' : 'text-slate-200'}`}><${Inline} text=${text} /></span>
   </label>`;
+  if (!onLearn) return row;
+  return html`<div className="flex items-start gap-1">${row}
+    <button onClick=${onLearn} title="Mở bài học" className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-2 py-1 text-xs font-medium text-indigo-200 hover:border-indigo-400 hover:bg-indigo-500/20"><${Icon} n="cap" s=${13} />Học</button>
+  </div>`;
 }
 
 /* =========================================================
@@ -604,6 +661,20 @@ function Dashboard({ S, set, stats, go }) {
       <h1 className="text-2xl font-semibold text-slate-50 sm:text-[28px]">Qua vòng System Design level Senior trong 15 tuần</h1>
       <p className="prose-line text-sm text-slate-400">Khoảng 10–12 giờ mỗi tuần, tổng ~165 giờ. Mỗi tuần gồm Học, Đọc, Làm, Đầu ra và Tự kiểm tra; tick từng mục khi bạn thật sự làm được.</p>
     </section>
+
+    ${(() => { const L = WM.filter(w => hasLesson(w.n)).flatMap(w => w.learn.flatMap(g => g.items).map(it => ({ it, w })));
+      const nx = L.find(x => !S.checks[x.it.id]); const d = L.filter(x => S.checks[x.it.id]).length;
+      return html`<section className="flex flex-col gap-3 rounded-xl border border-indigo-500/40 bg-indigo-500/[.07] p-4 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="mt-0.5 rounded-lg bg-indigo-500/20 p-2 text-indigo-300"><${Icon} n="cap" /></span>
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-300">${nx ? 'Học tiếp · Tuần ' + nx.w.n : 'Bài học'}</div>
+            <div className="text-sm font-semibold text-slate-50">${nx ? html`<${Inline} text=${nx.it.text} />` : 'Bạn đã học hết các bài hiện có'}</div>
+            <div className="tnum mt-0.5 text-xs text-slate-400">${d}/${L.length} khái niệm đã hiểu · bài học có cho tuần ${LESSON_WEEKS[0]}–${LESSON_WEEKS[LESSON_WEEKS.length - 1]}</div>
+          </div>
+        </div>
+        ${nx ? html`<button className=${B('primary')} onClick=${() => go('roadmap', { week: nx.w.n, phase: 0, lesson: nx.it.id })}>Mở bài học<${Icon} n="right" /></button>` : null}
+      </section>`; })()}
 
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       ${metric('Tiến độ tổng thể', Math.round(stats.pct * 100) + '%', `${stats.done}/${stats.total} mục`, stats.pct, 'bg-indigo-500')}
@@ -692,6 +763,106 @@ function QuizItem({ id, q, a, value, onChange, i }) {
     ${open ? html`<div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-relaxed text-amber-100/90"><${Inline} text=${a} /></div>` : null}
   </div>`;
 }
+/* =========================================================
+   LESSONS: markdown per week in lessons/wN.md, one section per concept, delimited by "@@ <item id>"
+   ========================================================= */
+const LESSON_WEEKS = [1, 2];
+const hasLesson = n => LESSON_WEEKS.includes(n);
+const lessonWeek = id => { const m = /^w(\d+)-learn-/.exec(id || ''); const n = m ? Number(m[1]) : 0; return hasLesson(n) ? n : 0; };
+const lessonCache = {};
+function parseLessons(txt) {
+  const map = {}; let id = null, buf = [];
+  for (const line of String(txt).split('\n')) {
+    const m = /^@@\s+(w\d+-learn-\d+-\d+)\s*$/.exec(line);
+    if (m) { if (id) map[id] = buf.join('\n'); id = m[1]; buf = []; } else if (id) buf.push(line);
+  }
+  if (id) map[id] = buf.join('\n');
+  return map;
+}
+function loadLessons(n) {
+  if (!lessonCache[n]) {
+    lessonCache[n] = fetch('lessons/w' + n + '.md', { cache: 'no-cache' })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(parseLessons)
+      .catch(e => { delete lessonCache[n]; throw e; });
+  }
+  return lessonCache[n];
+}
+function renderMd(md) {
+  try { if (window.marked) return window.marked.parse(md, { gfm: true }); } catch (e) { }
+  return '<pre>' + String(md).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</pre>';
+}
+function LessonReader({ S, set, id, onClose }) {
+  const wn = lessonWeek(id);
+  const week = WM.find(w => w.n === wn);
+  const items = week.learn.flatMap(g => g.items);
+  const idx = Math.max(0, items.findIndex(i => i.id === id));
+  const item = items[idx];
+  const [st, setSt] = useState({ status: 'loading', html: '' });
+  const scroller = useRef(null);
+  const go = d => { const n = items[idx + d]; if (n) set(['ui', 'lesson'], n.id); };
+  useEffect(() => {
+    let live = true; setSt({ status: 'loading', html: '' });
+    loadLessons(wn).then(map => { if (!live) return; const md = map[item.id]; setSt(md ? { status: 'ok', html: renderMd(md) } : { status: 'missing', html: '' }); })
+      .catch(e => { if (live) setSt({ status: 'error', html: String(e && e.message || e) }); });
+    if (scroller.current) scroller.current.scrollTop = 0;
+    return () => { live = false; };
+  }, [item.id, wn]);
+  useEffect(() => {
+    const prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    const onKey = e => {
+      const t = e.target && e.target.tagName;
+      if (e.key === 'Escape') onClose();
+      else if (t !== 'TEXTAREA' && t !== 'INPUT') { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  });
+  const done = !!S.checks[item.id];
+  const doneCount = items.filter(i => S.checks[i.id]).length;
+  const markAndNext = () => { set(['checks', item.id], true); if (items[idx + 1]) go(1); };
+  return html`<div className="fixed inset-0 z-50 flex flex-col bg-slate-950" role="dialog" aria-modal="true" aria-label=${'Bài học: ' + item.text}>
+    <div className="gutter flex items-center gap-3 border-b border-slate-800 bg-slate-950/95 py-3">
+      <button className=${B('quiet')} onClick=${onClose} aria-label="Đóng bài học"><${Icon} n="x" /></button>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-indigo-300">Tuần ${wn} · Khái niệm ${idx + 1}/${items.length}</div>
+        <div className="truncate text-sm font-semibold text-slate-100"><${Inline} text=${item.text} /></div>
+      </div>
+      <span className="tnum hidden text-xs text-slate-500 sm:inline">${doneCount}/${items.length} đã hiểu</span>
+    </div>
+    <div className="flex min-h-0 flex-1">
+      <nav className="hidden w-72 shrink-0 overflow-y-auto border-r border-slate-800 p-3 lg:block" aria-label="Khái niệm trong tuần">
+        ${items.map((it, i) => html`<button key=${it.id} onClick=${() => set(['ui', 'lesson'], it.id)} aria-current=${i === idx ? 'true' : null}
+          className=${'flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-[13px] leading-snug ' + (i === idx ? 'bg-indigo-500/15 text-slate-50' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200')}>
+          <span className=${'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] ' + (S.checks[it.id] ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300' : 'border-slate-700 text-slate-500')}>${S.checks[it.id] ? html`<${Icon} n="check" s=${10} />` : i + 1}</span>
+          <span className="min-w-0"><${Inline} text=${it.text} /></span></button>`)}
+      </nav>
+      <div ref=${scroller} className="min-w-0 flex-1 overflow-y-auto">
+        <div className="gutter mx-auto max-w-3xl py-6 sm:py-8">
+          ${st.status === 'loading' ? html`<p className="text-sm text-slate-500">Đang tải bài học…</p>` : null}
+          ${st.status === 'error' ? html`<div className="rounded-lg border border-rose-500/40 bg-rose-500/5 p-4 text-sm text-rose-200">Không tải được bài học (${st.html}). Bài học được nạp từ file <code className="inl">lessons/w${wn}.md</code>, nên cần mở trang qua web (Vercel, GitHub Pages hoặc <code className="inl">python3 -m http.server</code>), không mở trực tiếp file.</div>` : null}
+          ${st.status === 'missing' ? html`<p className="text-sm text-slate-500">Khái niệm này chưa có bài học.</p>` : null}
+          ${st.status === 'ok' ? html`<article className="lesson" dangerouslySetInnerHTML=${{ __html: st.html }}></article>` : null}
+
+          <section className="mt-10 flex flex-col gap-2 border-t border-slate-800 pt-6">
+            <label htmlFor=${'lnote-' + item.id} className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ghi chú của bạn cho khái niệm này</label>
+            <textarea id=${'lnote-' + item.id} rows="4" className=${inputCls + ' resize-y'} placeholder="Tự diễn đạt lại bằng lời của bạn, ví dụ từ dự án thật, chỗ còn mơ hồ…" value=${S.lnotes[item.id] || ''} onChange=${e => set(['lnotes', item.id], e.target.value)}></textarea>
+          </section>
+
+          <div className="mt-6 flex flex-wrap items-center gap-2 pb-[max(24px,env(safe-area-inset-bottom))]">
+            <button className=${B('ghost')} disabled=${idx === 0} onClick=${() => go(-1)}><${Icon} n="left" />Bài trước</button>
+            <div className="flex-1"></div>
+            <button className=${B('ghost')} aria-pressed=${done} onClick=${() => set(['checks', item.id], !done)}><${Icon} n="check" />${done ? 'Đã hiểu (bỏ tick)' : 'Đánh dấu đã hiểu'}</button>
+            ${idx < items.length - 1
+              ? html`<button className=${B('primary')} onClick=${markAndNext}>${done ? 'Bài tiếp' : 'Hiểu rồi, bài tiếp'}<${Icon} n="right" /></button>`
+              : html`<button className=${B('primary')} onClick=${() => { set(['checks', item.id], true); onClose(); }}><${Icon} n="check" />Xong tuần ${wn}</button>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function Roadmap({ S, set, stats }) {
   const phaseF = S.ui.phase || 0;
   const weeksShown = WM.filter(w => !phaseF || w.phase.id === phaseF);
@@ -701,6 +872,7 @@ function Roadmap({ S, set, stats }) {
   const toggle = (id, v) => set(['checks', id], v);
   const L = S.links[cur.n] || {};
   const setWeek = n => set(['ui', 'week'], n);
+  const openLesson = id => set(['ui', 'lesson'], id);
   const chip = (active) => `rounded-full border px-3 py-1 text-xs font-medium transition-colors ${active ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'}`;
 
   return html`<div className="flex flex-col gap-5">
@@ -731,8 +903,13 @@ function Roadmap({ S, set, stats }) {
         <${SectionBlock} icon="brain" title="Học · khái niệm" tone="text-indigo-400" count=${cur.learn.reduce((a, g) => a + g.items.filter(i => S.checks[i.id]).length, 0) + '/' + cur.learn.reduce((a, g) => a + g.items.length, 0)}>
           <div className="flex flex-col gap-3">${cur.learn.map(g => html`<div key=${g.label}>
             ${cur.learn.length > 1 || g.label !== 'Khái niệm' ? html`<${Eyebrow} className="mb-1 px-2 text-indigo-300/80">${g.label}<//>` : null}
-            ${g.items.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)}
+            ${g.items.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} onLearn=${hasLesson(cur.n) ? () => openLesson(it.id) : null} />`)}
           </div>`)}</div>
+          ${hasLesson(cur.n) ? (() => { const items = cur.learn.flatMap(g => g.items); const next = items.find(i => !S.checks[i.id]) || items[0]; const doneAll = items.every(i => S.checks[i.id]);
+            return html`<div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-3">
+              <p className="min-w-0 flex-1 text-xs text-slate-400">${doneAll ? 'Bạn đã học hết khái niệm tuần này. Mở lại bài nào cũng được để ôn.' : 'Mỗi khái niệm có một bài học đầy đủ: giải thích, sơ đồ, trade-off, câu nói mẫu khi phỏng vấn và câu hỏi tự kiểm tra.'}</p>
+              <button className=${B('primary') + ' text-xs'} onClick=${() => openLesson(next.id)}><${Icon} n="cap" s=${14} />${doneAll ? 'Ôn lại từ đầu' : (items.some(i => S.checks[i.id]) ? 'Học tiếp' : 'Bắt đầu học')}</button>
+            </div>`; })() : html`<p className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-500">Bài học chi tiết cho tuần này đang được biên soạn.</p>`}
         <//>
         <${SectionBlock} icon="book" title="Đọc · tài liệu" tone="text-sky-400" count=${cur.read.filter(i => S.checks[i.id]).length + '/' + cur.read.length}>
           ${cur.read.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)}
@@ -765,6 +942,8 @@ function Roadmap({ S, set, stats }) {
     ${cur.quiz.length ? html`<${SectionBlock} icon="mic" title="Tự kiểm tra · active recall" tone="text-amber-400" count=${cur.quiz.filter((_, i) => (S.quiz['w' + cur.n + '-q' + i] || '').trim()).length + '/' + cur.quiz.length + ' đã trả lời'}>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">${cur.quiz.map((q, i) => html`<${QuizItem} key=${cur.n + '-' + i} i=${i} id=${'quiz-w' + cur.n + '-' + i} q=${q.q} a=${q.a} value=${S.quiz['w' + cur.n + '-q' + i]} onChange=${v => set(['quiz', 'w' + cur.n + '-q' + i], v)} />`)}</div>
     <//>` : null}
+
+    ${S.ui.lesson && lessonWeek(S.ui.lesson) ? html`<${LessonReader} S=${S} set=${set} id=${S.ui.lesson} onClose=${() => set(['ui', 'lesson'], '')} />` : null}
 
     <div className="flex items-center justify-between gap-3">
       <button className=${B('ghost')} disabled=${cur.n === 1} onClick=${() => { setWeek(cur.n - 1); if (phaseF && phaseOf(cur.n - 1).id !== phaseF) set(['ui', 'phase'], 0); }}><${Icon} n="left" />Tuần ${Math.max(1, cur.n - 1)}</button>
@@ -1348,3 +1527,5 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
 })();
 </script>
+</body>
+</html>
