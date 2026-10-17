@@ -1,0 +1,1350 @@
+<title>System Design Study Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
+        }
+      }
+    }
+  };
+</script>
+<style>
+  /* Layout: left rail with progress (lg) / top rail (mobile) + sticky header + one scrolling workspace.
+     Single committed dark "developer console" look. Blue-biased slate neutrals; indigo = học khái niệm,
+     emerald = luyện đề, amber = mock & offer, rose = cảnh báo. */
+  :root {
+    --bg: #020617;
+    --panel: #0b1222;
+    --line: #1e293b;
+    --ink: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #6366f1;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
+  .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .tnum { font-variant-numeric: tabular-nums; font-family: var(--font-data); }
+  h1, h2, h3 { text-wrap: balance; }
+  .prose-line { max-width: 72ch; }
+  textarea, input, select { font-family: var(--font-ui); }
+  ::selection { background: rgba(99, 102, 241, .35); }
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .noscrollbar::-webkit-scrollbar { display: none; }
+  .noscrollbar { scrollbar-width: none; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; border: 2px solid var(--bg); }
+  code.inl { font-family: var(--font-data); font-size: .86em; background: rgba(148, 163, 184, .12); border: 1px solid rgba(148, 163, 184, .18); padding: 0 .3em; border-radius: 4px; color: #c7d2fe; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  #boot { padding: 48px 24px; color: var(--muted); font-family: var(--font-data); font-size: 13px; }
+</style>
+
+<div id="root"><div id="boot">Đang nạp System Design Study Hub…</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+(function () {
+'use strict';
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const html = htm.bind(React.createElement);
+const STORAGE_KEY = 'sd_senior_15weeks_v1';
+
+/* =========================================================
+   ICONS — vẽ inline theo phong cách Lucide (stroke 2, 24x24)
+   ========================================================= */
+const ICONS = {
+  grid: [['rect', { x: 3, y: 3, width: 7, height: 9, rx: 1 }], ['rect', { x: 14, y: 3, width: 7, height: 5, rx: 1 }], ['rect', { x: 14, y: 12, width: 7, height: 9, rx: 1 }], ['rect', { x: 3, y: 16, width: 7, height: 5, rx: 1 }]],
+  route: [['circle', { cx: 6, cy: 19, r: 3 }], ['path', { d: 'M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15' }], ['circle', { cx: 18, cy: 5, r: 3 }]],
+  timer: [['line', { x1: 10, x2: 14, y1: 2, y2: 2 }], ['line', { x1: 12, x2: 15, y1: 14, y2: 11 }], ['circle', { cx: 12, cy: 14, r: 8 }]],
+  layers: [['path', { d: 'M12 2 2 7l10 5 10-5-10-5z' }], ['path', { d: 'm2 17 10 5 10-5' }], ['path', { d: 'm2 12 10 5 10-5' }]],
+  calc: [['rect', { x: 4, y: 2, width: 16, height: 20, rx: 2 }], ['line', { x1: 8, x2: 16, y1: 6, y2: 6 }], ['path', { d: 'M16 10v8M8 10h.01M12 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01' }]],
+  listcheck: [['path', { d: 'm3 17 2 2 4-4' }], ['path', { d: 'm3 7 2 2 4-4' }], ['path', { d: 'M13 6h8M13 12h8M13 18h8' }]],
+  download: [['path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }], ['path', { d: 'm7 10 5 5 5-5' }], ['path', { d: 'M12 15V3' }]],
+  upload: [['path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }], ['path', { d: 'm17 8-5-5-5 5' }], ['path', { d: 'M12 3v12' }]],
+  reset: [['path', { d: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8' }], ['path', { d: 'M3 3v5h5' }]],
+  check: [['path', { d: 'M20 6 9 17l-5-5' }]],
+  plus: [['path', { d: 'M5 12h14M12 5v14' }]],
+  trash: [['path', { d: 'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' }]],
+  play: [['polygon', { points: '6 3 20 12 6 21 6 3' }]],
+  pause: [['rect', { x: 6, y: 4, width: 4, height: 16, rx: 1 }], ['rect', { x: 14, y: 4, width: 4, height: 16, rx: 1 }]],
+  x: [['path', { d: 'M18 6 6 18M6 6l12 12' }]],
+  bulb: [['path', { d: 'M9 18h6M10 22h4M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14' }]],
+  shuffle: [['path', { d: 'M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22' }], ['path', { d: 'm18 2 4 4-4 4' }], ['path', { d: 'M2 6h1.9c1.5 0 2.9.9 3.6 2.2' }], ['path', { d: 'M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8' }], ['path', { d: 'm18 14 4 4-4 4' }]],
+  copy: [['rect', { x: 8, y: 8, width: 14, height: 14, rx: 2 }], ['path', { d: 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2' }]],
+  pencil: [['path', { d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z' }]],
+  skip: [['polygon', { points: '5 4 15 12 5 20 5 4' }], ['line', { x1: 19, x2: 19, y1: 5, y2: 19 }]],
+  left: [['path', { d: 'm15 18-6-6 6-6' }]],
+  right: [['path', { d: 'm9 18 6-6-6-6' }]],
+  book: [['path', { d: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20' }]],
+  flask: [['path', { d: 'M10 2v7.31M14 9.3V1.99M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0' }]],
+  target: [['circle', { cx: 12, cy: 12, r: 10 }], ['circle', { cx: 12, cy: 12, r: 6 }], ['circle', { cx: 12, cy: 12, r: 2 }]],
+  brain: [['path', { d: 'M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z' }], ['path', { d: 'M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z' }]],
+  link: [['path', { d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }], ['path', { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' }]],
+  alert: [['path', { d: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3' }], ['path', { d: 'M12 9v4M12 17h.01' }]],
+  mic: [['path', { d: 'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z' }], ['path', { d: 'M19 10v2a7 7 0 0 1-14 0v-2M12 19v3' }]],
+  save: [['path', { d: 'M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z' }], ['path', { d: 'M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7' }]],
+  db: [['ellipse', { cx: 12, cy: 5, rx: 9, ry: 3 }], ['path', { d: 'M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0' }]]
+};
+function Icon({ n, s = 16, className = '' }) {
+  const els = ICONS[n] || [];
+  return React.createElement('svg', { width: s, height: s, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', className: 'shrink-0 ' + className, 'aria-hidden': 'true' },
+    els.map(([t, a], i) => React.createElement(t, Object.assign({ key: i }, a))));
+}
+
+/* =========================================================
+   DỮ LIỆU GỐC — 15 tuần, 6 phase
+   ========================================================= */
+const PHASES = [
+  { id: 1, name: 'Nền tảng hệ phân tán', weeks: [1, 2, 3, 4], kind: 'learn', goal: 'Nói được mọi building block phổ biến làm gì, mất gì, và khi nào không nên dùng.' },
+  { id: 2, name: 'Quy trình phỏng vấn & 4 bài cơ bản', weeks: [5, 6], kind: 'practice', goal: 'Mọi bài làm theo khung 7 bước và quy trình 4 bước: tự làm 45 phút nói to → so lời giải → viết lại design doc 1 trang → ghi lỗ hổng.' },
+  { id: 3, name: 'Building blocks nâng cao & trade-off', weeks: [7, 8, 9], kind: 'learn', goal: 'Bộ ~25 thẻ trade-off theo mẫu 5 mục; Chủ nhật tuần 8 và 9 có thêm bài HLD bấm giờ 45 phút.' },
+  { id: 4, name: 'Resilience, observability & microservices', weeks: [10], kind: 'learn', goal: 'Nơi kinh nghiệm hệ thống tích hợp và điều phối phát huy giá trị cao nhất.' },
+  { id: 5, name: 'Bài thiết kế nâng cao', weeks: [11, 12, 13, 14], kind: 'practice', goal: 'Ở level Senior, Deep Dive, Concurrency và Failure Handling là nơi được chấm điểm cao nhất.' },
+  { id: 6, name: 'Mock interview & chốt offer', weeks: [15], kind: 'mock', goal: '3–4 buổi mock với đề mới hoàn toàn, chấm điểm theo rubric, đàm phán cả gói.' }
+];
+const KIND = {
+  learn: { label: 'Học khái niệm', dot: 'bg-indigo-400', text: 'text-indigo-300', bar: 'bg-indigo-500', soft: 'bg-indigo-500/10', border: 'border-indigo-500/40' },
+  practice: { label: 'Luyện đề', dot: 'bg-emerald-400', text: 'text-emerald-300', bar: 'bg-emerald-500', soft: 'bg-emerald-500/10', border: 'border-emerald-500/40' },
+  mock: { label: 'Mock & offer', dot: 'bg-amber-400', text: 'text-amber-300', bar: 'bg-amber-500', soft: 'bg-amber-500/10', border: 'border-amber-500/40' }
+};
+const phaseOf = n => PHASES.find(p => p.weeks.includes(n));
+
+const WEEKS = [
+  {
+    n: 1, tag: 'Topic 1, 2', title: 'Nhập môn System Design và Distributed System',
+    learn: [{ label: 'Khái niệm', text: 'Scale dọc vs scale ngang; availability, reliability, SLA/SLO/SLI; stateless vs stateful service; CAP ở mức trực giác; các kiểu lỗi riêng của hệ phân tán (partial failure, network partition, clock skew); 8 fallacies of distributed computing' }],
+    read: 'DDIA chương 1 và chương 2 (data model, chuyển từ tuần 4 sang để tuần 4 nhẹ bớt); DDIA chương 8 (đọc lướt, tuần 7 đọc lại kỹ); Alex Xu Vol 1 chương 1 "Scale from zero to millions of users"',
+    do: 'Vẽ lại kiến trúc một hệ thống bạn đang vận hành theo kiểu interviewer muốn thấy: client, gateway, service, queue, database, các mũi tên có ghi giao thức',
+    out: 'Ghi chú 1 trang "8 fallacies", mỗi fallacy kèm một ví dụ từ dự án thật; sơ đồ hệ thống hiện tại',
+    quiz: [
+      { q: '3 service nối tiếp, mỗi cái 99,9%, availability tổng là bao nhiêu?', a: '0,999³ ≈ 99,7%. Gọi nối tiếp synchronous làm availability giảm theo cấp số nhân với số service trong chuỗi; dùng queue hoặc cache để cắt sự phụ thuộc đồng bộ.' },
+      { q: 'Vì sao CAP chỉ bắt chọn khi có partition?', a: 'Trong mạng thực tế không thể tránh network partition. Khi partition xảy ra, hệ thống buộc phải quyết định: từ chối phục vụ để giữ dữ liệu đúng (CP), hoặc vẫn trả lời nhưng chấp nhận dữ liệu cũ hoặc lệch (AP). Khi không có partition, câu hỏi chuyển thành latency vs consistency (PACELC).' }
+    ]
+  },
+  {
+    n: 2, tag: 'Topic 3, 4', title: 'Network, DNS, HTTP, Polling, WebSocket, Load Balancing',
+    learn: [{ label: 'Khái niệm', text: 'L4 vs L7; TCP vs UDP; TLS handshake; HTTP/1.1 vs HTTP/2 vs HTTP/3; keep-alive; DNS resolution, TTL, GeoDNS; short polling, long polling, SSE, WebSocket; thuật toán LB (round robin, weighted, least connections, IP hash, consistent hashing); health check; sticky session; global LB' }],
+    read: 'High Performance Browser Networking (chương HTTP/2 và WebSocket); bài viết ByteByteGo về load balancer',
+    do: 'Spring Boot app có một endpoint long polling và một endpoint WebSocket; đặt Nginx trước 2 instance, thử round robin vs least_conn và quan sát kết nối WebSocket',
+    out: 'Bảng so sánh 4 cách đẩy dữ liệu realtime (short poll, long poll, SSE, WebSocket) theo latency, tải server, độ phức tạp',
+    quiz: [
+      { q: 'LB L7 cần gì để giữ được kết nối WebSocket?', a: 'Hỗ trợ HTTP Upgrade (`Connection: Upgrade`, `Upgrade: websocket`), idle timeout đủ dài kết hợp ping/pong heartbeat, và quản lý connection state giữa client–LB và LB–backend.' },
+      { q: 'Sticky session gây hại gì khi autoscale?', a: 'Lệch tải: vài node giữ quá nhiều session nặng; instance mới không nhận traffic của user cũ ngay; một node chết thì toàn bộ user gắn với node đó mất session.' }
+    ]
+  },
+  {
+    n: 3, tag: 'Topic 5, 6', title: 'API Gateway, Rate Limiter, Cache, Message Queue',
+    learn: [{ label: 'Khái niệm', text: 'Trách nhiệm của gateway (routing, auth, rate limit, aggregation, TLS termination), BFF; 5 thuật toán rate limit ở mức tổng quan; cache-aside, read-through, write-through, write-back, write-around; LRU vs LFU; cache stampede, penetration, avalanche; **Read Hot Key** (local cache Caffeine TTL 1–2 giây hoặc nhân bản key `key_1..N` trên nhiều node); Redis vs Memcached; queue vs topic; ordering; delivery semantics; idempotent consumer; DLQ' }],
+    read: 'DDIA chương 11 phần message broker; Alex Xu Vol 1 chương 4 (đọc lướt, tuần 5 làm sâu)',
+    do: 'Thêm Redis cache-aside vào app tuần 2, đo latency trước và sau; viết bảng so sánh IBM MQ vs Kafka vs RabbitMQ từ kinh nghiệm thực tế',
+    out: 'Bảng so sánh 3 message broker (dùng lại khi interviewer hỏi "sao chọn Kafka"); kết quả đo Redis cache-aside',
+    quiz: [
+      { q: 'Chặn cache stampede khi một hot key hết hạn thế nào?', a: 'Distributed lock / mutex để chỉ 1 request xuống DB nạp lại cache; hoặc logical expiration (làm mới bất đồng bộ trước khi TTL hết); thêm jitter vào TTL để tránh avalanche.' },
+      { q: 'Thiết kế consumer idempotent với at-least-once ra sao?', a: 'Mỗi message có `message_id` / `idempotency_key` duy nhất; ghi trạng thái đã xử lý trong cùng một local transaction với bảng nghiệp vụ (unique constraint), hoặc upsert có điều kiện theo version.' },
+      { q: '1 triệu request/giây cùng đọc thông tin một sản phẩm flash sale trên Redis thì xử lý thế nào?', a: 'Đây là hot key đọc: một node Redis nghẽn CPU và băng thông. Dùng cache cục bộ (Caffeine) TTL 1–2 giây ở tầng app, hoặc nhân bản thành `key_1..key_N` rải trên nhiều node rồi đọc ngẫu nhiên. Lưu ý: khi dữ liệu đổi phải cập nhật đủ N bản, nên hợp với dữ liệu ít đổi.' }
+    ]
+  },
+  {
+    n: 4, tag: 'Topic 7', title: 'Database: SQL vs NoSQL & Concurrency Control', widget: 'concurrency',
+    learn: [{ label: 'Khái niệm', text: 'ACID; isolation level và các anomaly (dirty read, non-repeatable read, phantom, lost update, write skew); concurrency control: pessimistic locking (`SELECT ... FOR UPDATE`), optimistic locking (cột `version`, compare-and-set + retry), 2PL và vì sao serializable đắt; index B-tree vs LSM-tree; 4 loại NoSQL (key-value, document, wide-column, graph); replication và sharding ở mức trade-off cốt lõi (leader-follower vs leaderless, range vs hash, consistent hashing, hot partition)' }],
+    read: 'Trọng tâm DDIA chương 3 (storage, B-tree/LSM); trọng tâm DDIA chương 7 (transactions); DDIA chương 5–6 (replication, partitioning): tuần này chỉ đọc phần mở đầu và tóm tắt cuối chương, đọc kỹ dần ở Phase 2 và Phase 5',
+    do: 'Mô phỏng 100 thread cùng trừ tiền một tài khoản bằng Spring + JPA theo 3 cách: không lock, `SELECT FOR UPDATE`, `@Version` + retry; so số dư cuối và TPS; chạy `EXPLAIN` trên Postgres với và không có index; consistent hashing có virtual node bằng Java (nếu không kịp thì dời sang tuần 5)',
+    out: 'Bảng kết quả 3 cách trừ tiền (đúng hay sai, TPS); cây quyết định "chọn database nào" theo access pattern, mức consistency, quy mô',
+    quiz: [
+      { q: 'Write skew là gì và isolation level nào chặn được?', a: 'Hai transaction cùng đọc một tập dữ liệu thỏa điều kiện rồi mỗi bên cập nhật một dòng khác nhau, làm vi phạm ràng buộc tổng thể (2 bác sĩ cùng xin nghỉ trực, rút tiền vượt tổng hạn mức). Cần `Serializable`, hoặc `SELECT FOR UPDATE` khóa tường minh các dòng phụ thuộc.' },
+      { q: 'Khi nào optimistic locking tệ hơn pessimistic?', a: 'Khi tranh chấp cao trên cùng một bản ghi (tài khoản merchant lớn, flash sale): bão retry lãng phí CPU và DB, throughput thực tế tụt dốc.' },
+      { q: 'Khi nào chọn Cassandra thay Postgres?', a: 'Workload ghi cực lớn, cần scale ngang tuyến tính nhiều node hoặc multi-datacenter, truy cập theo partition key biết trước, không cần join phức tạp hay ACID nhiều bảng.' },
+      { q: 'W + R > N đảm bảo điều gì và không đảm bảo điều gì?', a: 'Đảm bảo tập node đọc và tập node ghi giao nhau ít nhất 1 node có bản mới nhất. Không đảm bảo linearizability nếu có sloppy quorum, clock skew khi dùng LWW, hoặc đọc chạy đồng thời với một lệnh ghi chưa hoàn tất.' }
+    ]
+  },
+  {
+    n: 5, tag: 'Topic 8, 9, 11', title: 'Quy trình interview, Design Rate Limiter, Design Unique ID Generator',
+    learn: [
+      { label: 'Rate Limiter', text: 'Đặt ở đâu (client, gateway, middleware); so sánh token bucket, leaky bucket, fixed window, sliding log, sliding window counter; counter phân tán trên Redis và race condition (Lua script hoặc `INCR` + `EXPIRE`); đồng bộ nhiều region; HTTP 429 và header `Retry-After`; lưu rule cấu hình ở đâu; fail-open vs fail-closed khi Redis chết' },
+      { label: 'Unique ID', text: 'UUID; auto-increment nhiều master với bước nhảy; ticket server kiểu Flickr; Snowflake (41 bit timestamp, 10 bit machine, 12 bit sequence); xử lý clock lùi; ID sắp xếp được theo thời gian để làm gì' }
+    ],
+    read: 'Alex Xu Vol 1 chương 3 (framework); Alex Xu Vol 1 chương 4 (rate limiter); Alex Xu Vol 1 chương 7 (unique ID)',
+    do: 'Viết token bucket và sliding window counter bằng Java trên Redis; viết Snowflake generator, chạy 16 thread sinh 1 triệu ID và kiểm tra không trùng',
+    out: 'Design doc 1 trang Rate Limiter; design doc 1 trang Unique ID; 2 repo/module code nhỏ',
+    quiz: [
+      { q: 'Khi nào token bucket tốt hơn sliding window?', a: 'Khi cho phép burst ngắn hạn hợp lệ, và cần rất ít bộ nhớ mỗi user (2 số: token còn lại + thời điểm nạp) so với lưu log timestamp.' },
+      { q: 'Snowflake gặp clock lùi 5 ms thì làm gì?', a: 'Cho thread chờ hết 5 ms, hoặc tiếp tục dùng sequence từ mili-giây hợp lệ cuối cùng. Nếu lệch vượt ngưỡng cho phép thì từ chối sinh ID, bắn alert và tách node khỏi LB.' }
+    ]
+  },
+  {
+    n: 6, tag: 'Topic 10, 12', title: 'Design TinyURL, Final project Pastebin',
+    learn: [
+      { label: 'TinyURL', text: 'Ước lượng read/write QPS và storage 10 năm; base62; hash + xử lý collision vs counter-based ID (tái dùng Snowflake tuần 5); redirect 301 vs 302 và ảnh hưởng tới analytics; cache hot URL; chọn database; custom alias; expiration' },
+      { label: 'Pastebin', text: 'Nội dung lớn (tới vài MB) nên tách metadata DB và blob storage (S3/Object Storage); CDN cho paste công khai; dọn paste hết hạn bằng job nền hoặc TTL; quyền truy cập; giới hạn kích thước' }
+    ],
+    read: 'Alex Xu Vol 1 chương 8 (URL shortener)',
+    do: 'Pastebin là final project của Phase 2: viết design doc đầy đủ 2–3 trang; **tự quay video mock 45 phút (lần 1)**',
+    out: 'Design doc TinyURL; design doc Pastebin; video tự mock lần 1; danh sách 3 điểm cần sửa khi xem lại video',
+    quiz: [
+      { q: 'Vì sao Pastebin không nên lưu nội dung trong cùng bảng với metadata?', a: 'Nội dung lớn làm phình page trong buffer pool, làm chậm quét index metadata, và tốn ổ đĩa DB đắt hơn nhiều so với object storage rẻ, scale băng thông tốt hơn.' },
+      { q: 'Chọn 301 (Permanent Redirect) thì mất gì?', a: 'Trình duyệt cache cứng URL đích, lần sau đi thẳng không qua server rút gọn: mất thống kê click realtime và không đổi được URL đích.' }
+    ]
+  },
+  {
+    n: 7, tag: 'Session 1 + 2', title: 'Signals mid/senior, primitive phân tán + Trade-off phần 1',
+    learn: [
+      { label: 'Primitive', text: 'Bloom filter (false positive, không có false negative, chọn kích thước và số hàm hash; dùng chống cache penetration, trong SSTable của Cassandra, dedup URL crawler); Checksum (CRC32 vs SHA-256, kiểm tính toàn vẹn khi lưu và truyền); Heartbeat (timeout, phi accrual detector, gossip); Leader and Follower (leader election, Raft ở mức log replication + election, split brain, fencing token); PACELC (khi có partition chọn A hay C, khi bình thường chọn L hay C)' },
+      { label: 'Trade-off', text: 'Strong vs eventual consistency; latency vs throughput; ACID vs BASE; read-through vs write-through; batch vs stream processing; load balancer vs API gateway' }
+    ],
+    read: 'Patterns of Distributed Systems (Unmesh Joshi: HeartBeat, Leader and Followers, Quorum, Generation Clock); bài báo Raft và trang mô phỏng raft.github.io; DDIA chương 8 (đọc kỹ); DDIA chương 9',
+    do: 'Viết Bloom filter bằng Java, so tỷ lệ false positive đo được với công thức lý thuyết',
+    out: '6 thẻ trade-off Session 2; ghi chú 1 trang "5 primitive và mỗi cái giải bài toán gì"; code Bloom filter',
+    quiz: [
+      { q: 'Xếp DynamoDB, Cassandra, Postgres single-leader vào PACELC.', a: 'Cassandra: PA/EL. DynamoDB: mặc định PA/EL, có tuỳ chọn strongly consistent read. Postgres single-leader replication đồng bộ: PC/EC.' },
+      { q: 'Fencing token cứu ta khỏi lỗi gì mà lease/TTL không cứu được?', a: 'Client 1 giữ lock bị GC pause dài hơn TTL, lock server cấp lock cho client 2; client 1 tỉnh dậy vẫn ghi đè. Fencing token tăng đơn điệu giúp storage từ chối lệnh ghi có token thấp hơn token đã thấy.' }
+    ]
+  },
+  {
+    n: 8, tag: 'Session 3', title: 'Trade-off phần 2 + HLD Google Drive', widget: 'grpc',
+    learn: [{ label: 'Trade-off', text: 'API Gateway vs Direct service exposure; Proxy (forward) vs Reverse proxy; SQL vs NoSQL nhìn lại qua case cụ thể; Primary-replica vs Peer-to-peer replication; Data compression vs Data deduplication; Server-side vs Client-side caching (kèm HTTP cache header: `Cache-Control`, `ETag`); REST vs RPC (gRPC, Protobuf, HTTP/2 streaming)' }],
+    read: 'Tài liệu gRPC phần concepts; DDIA chương 4 (encoding và evolution của schema)',
+    do: 'Một Spring Boot service expose cùng API qua REST/JSON và gRPC/Protobuf, so payload size và latency p50/p99; **Chủ nhật: 45 phút HLD Design Google Drive/Dropbox**, áp dụng compression vs dedup (chunking), client vs server caching, REST vs RPC',
+    out: '7 thẻ trade-off; kết quả benchmark REST vs gRPC; HLD Google Drive 1 trang',
+    quiz: [
+      { q: 'Khi nào để client gọi thẳng service mà không qua gateway?', a: 'Giao tiếp nội bộ east-west giữa các microservice trong cùng mạng hoặc service mesh, cần latency thấp và tránh thêm một hop tập trung có thể thành single point of failure.' },
+      { q: 'Dedup ở tầng nào trong hệ thống backup file?', a: 'Chia file thành chunk (cố định hoặc content-defined chunking / Rabin fingerprint) ngay tại client, chỉ upload chunk có hash chưa tồn tại trên server: tiết kiệm cả băng thông lẫn dung lượng.' }
+    ]
+  },
+  {
+    n: 9, tag: 'Session 4', title: 'Trade-off phần 3 + HLD YouTube',
+    learn: [{ label: 'Trade-off', text: 'Polling vs Long polling vs Webhooks (retry, ký HMAC, idempotency phía nhận); CDN vs Direct server serving (push vs pull CDN, invalidation, cache key); Serverless vs Server-based (cold start, mô hình chi phí, giới hạn thời gian chạy); Hybrid cloud storage vs All-cloud storage (data residency, chi phí egress); Token bucket vs Leaky bucket (burst vs đầu ra đều); Read-heavy vs Write-heavy system (read replica + cache vs LSM, batching, queue)' }],
+    read: 'Alex Xu Vol 1 chương 1 phần CDN; tài liệu AWS Lambda phần cold start; Alex Xu Vol 1 chương 14 (YouTube)',
+    do: 'Viết một webhook receiver có kiểm chữ ký HMAC và chống xử lý trùng; **Chủ nhật: 45 phút HLD Design YouTube**, áp dụng CDN vs direct serving, read-heavy, transcoding chạy serverless hay trên server',
+    out: 'Đủ ~25 thẻ trade-off; HLD YouTube 1 trang; tự quiz ngẫu nhiên 10 thẻ, mỗi thẻ trả lời trong 60 giây',
+    quiz: [
+      { q: 'Hệ thống 95% đọc, 5% ghi. Đổi thiết kế gì khi tỷ lệ đảo ngược thành 5% đọc, 95% ghi?', a: 'Bỏ mô hình B-tree + nhiều read replica + read cache; chuyển sang queue làm bộ đệm hấp thụ tải, ghi theo lô (batch / write-behind), DB dựa trên LSM-tree (Cassandra, RocksDB) và shard theo hash để rải tải ghi.' }
+    ]
+  },
+  {
+    n: 10, tag: 'Session 5 + 11', title: 'Circuit breaker, Sidecar, Saga + TCC, CQRS, Observability + Migration',
+    learn: [
+      { label: 'Resilience', text: 'Circuit breaker 3 trạng thái closed, open, half-open; retry với exponential backoff + jitter; idempotency key; timeout budget xuyên chuỗi gọi; bulkhead' },
+      { label: 'Pattern', text: 'Sidecar (Envoy, service mesh như Istio); Saga choreography vs orchestration, compensating transaction; TCC (Try-Confirm-Cancel) và so với 2PC; CQRS và event sourcing; Transactional Outbox (giải bài toán dual write mà Saga hay gặp)' },
+      { label: 'Observability', text: 'Metrics, logs, traces và câu hỏi mỗi loại trả lời; phương pháp RED và USE; distributed tracing với W3C `traceparent`, truyền qua HTTP header và Kafka header; OpenTelemetry (SDK, Collector); head-based vs tail-based sampling; correlation ID trong log; SLO và alert theo error budget' },
+      { label: 'Migration & zero-downtime resharding', text: 'Strangler fig; tách theo bounded context (DDD); database per service; quy trình 4 bước zero-downtime data migration (CDC Debezium hoặc dual write → backfill + consistency check → shadow / canary read → cutover write + rollback plan); dùng cùng quy trình cho resharding 4 → 16 shard; feature flag; dựng observability trước khi tách' }
+    ],
+    read: 'microservices.io (Saga, CQRS, Transactional Outbox); Microservices Patterns (Chris Richardson) chương 4; tài liệu OpenTelemetry phần concepts; Monolith to Microservices (Sam Newman)',
+    do: 'Resilience4j trong Spring (circuit breaker + retry + bulkhead) gọi một service giả lập lỗi 30%; saga đặt hàng → thanh toán → kho qua Kafka, có outbox và bước bù trừ; gắn OpenTelemetry Java agent vào demo saga và xem một trace đi xuyên qua Kafka trên Jaeger',
+    note: 'Nếu quá tải: dời phần migration sang tối thứ 2–3 của tuần 11.',
+    out: 'Sơ đồ saga có đường bù trừ; ảnh chụp một trace end-to-end; câu chuyện migration 3 phút (bối cảnh, vì sao tách, tách thế nào, sự cố, bài học)',
+    quiz: [
+      { q: 'Retry không có jitter gây ra hiện tượng gì?', a: 'Thundering herd: hàng loạt client lỗi cùng lúc sẽ cùng đợi đúng 2^k giây rồi đồng loạt retry trong một tích tắc, đánh sập tiếp service vừa hồi phục.' },
+      { q: 'Khi nào chọn TCC thay vì Saga?', a: 'Khi cần giữ tài nguyên ngay ở bước Try (giữ tiền, giữ tồn kho) để không ai thấy trạng thái trung gian như Saga, trước khi trừ thật ở bước Confirm.' },
+      { q: 'CQRS làm read model trễ thì UX xử lý sao?', a: 'UI cập nhật optimistic từ response của lệnh ghi, hoặc route read-your-own-writes về primary trong vài giây đầu cho chính user đó.' },
+      { q: 'Một request đi qua 15 service và Kafka bị chậm ở p99, tìm nút cổ chai bằng cách nào?', a: 'Distributed tracing truyền `traceparent` qua HTTP và Kafka header; tail-based sampling giữ 100% trace vượt ngưỡng p99; xem waterfall các span để thấy span nào chiếm thời gian.' },
+      { q: 'Chuyển DB thanh toán từ 4 lên 16 shard mà không được downtime, làm từng bước ra sao và rollback ở bước nào?', a: '(1) Bật CDC (ưu tiên hơn dual write) sang cụm 16 shard; (2) backfill dữ liệu lịch sử, chạy consistency check; (3) chuyển dần đọc bằng shadow/canary read, so kết quả; (4) cutover ghi. Trước bước 4 rollback chỉ là tắt luồng đọc mới; sau bước 4 cần đường CDC ngược về cụm cũ để rollback.' }
+    ]
+  },
+  {
+    n: 11, tag: 'Session 6 + 9', title: 'Design Uber + Design Shard Counter',
+    learn: [
+      { label: 'Uber', text: 'Ghi vị trí tài xế tần suất cao (vài giây một lần) nên cần store chịu ghi lớn, dữ liệu sống ngắn; geo index bằng geohash, quadtree, hoặc S2/H3; tìm tài xế gần và dispatch; trạng thái chuyến đi là state machine cần nhất quán; kết nối realtime tới app tài xế qua WebSocket; ETA; thanh toán bằng saga (nối tuần 10)' },
+      { label: 'Shard Counter', text: 'Hot key ghi khi một bài có hàng triệu like (phân biệt với hot key đọc ở tuần 3); chia counter thành N shard rồi cộng khi đọc; gom ghi theo lô (write-behind); đếm xấp xỉ (HyperLogLog) khi chấp nhận được; Redis `INCR` vs counter của Cassandra; đọc nhất quán đến đâu là đủ' }
+    ],
+    read: 'Alex Xu Vol 2: Proximity Service; Alex Xu Vol 2: Nearby Friends; Alex Xu Vol 2: Google Maps',
+    do: '',
+    out: 'Design doc Uber; design doc Shard Counter; bảng so sánh Geohash vs Quadtree vs H3',
+    quiz: [
+      { q: 'Tài xế đứng ở ranh giới 2 ô geohash thì tìm kiếm thế nào?', a: 'Luôn query ô hiện tại và 8 ô láng giềng (9 ô), rồi lọc theo khoảng cách Haversine, tránh lỗi hai điểm sát nhau nhưng khác prefix geohash.' },
+      { q: 'Counter 1 triệu ghi/giây vào 1 key, chia bao nhiêu shard?', a: 'Nêu giả định trước: nếu một key trên một node chịu an toàn khoảng 20–50 nghìn ghi/giây thì cần N ≈ 20–50 shard; hoặc gom batch trong memory local rồi flush định kỳ để giảm hẳn số lệnh ghi.' }
+    ]
+  },
+  {
+    n: 12, tag: 'Session 7 + 10', title: 'Design WhatsApp + Distributed Locking + Java runtime', widget: 'hikari',
+    learn: [
+      { label: 'WhatsApp', text: 'Tầng gateway giữ WebSocket, session service biết user nào đang ở gateway nào; thứ tự tin nhắn trong một cuộc hội thoại; trạng thái sent, delivered, read; lưu tin cho người offline; fan-out cho nhóm; presence bằng heartbeat; media qua blob storage + CDN; mã hóa đầu cuối ở mức khái niệm; chọn store wide-column (Cassandra, HBase, ScyllaDB) cho lịch sử chat' },
+      { label: 'Distributed Lock', text: 'Redis `SET NX` + TTL; Redlock và tranh luận quanh nó; ZooKeeper hoặc etcd với ephemeral node và lease; fencing token (nối lại tuần 7); khi nào nên tránh lock và dùng idempotency hoặc optimistic concurrency' },
+      { label: 'Java runtime (vũ khí riêng)', text: 'GC pause dài hơn TTL làm lock hết hạn trong khi tiến trình vẫn tưởng mình đang giữ lock; virtual thread (Java 21) vs reactive (WebFlux) cho service giữ rất nhiều kết nối như chat gateway; sizing HikariCP: số pod × pool size phải nằm dưới `max_connections` của Postgres (50 pod × pool 20 = 1.000 kết nối, vượt xa mức mặc định 100), nên giảm pool hoặc đặt PgBouncer phía trước' }
+    ],
+    read: 'Alex Xu Vol 1 chương 12 (chat system); blog Martin Kleppmann "How to do distributed locking"; wiki HikariCP trang "About Pool Sizing"',
+    do: 'Viết lock trên Redis có TTL và fencing token, giả lập tiến trình bị GC pause dài hơn TTL để thấy vì sao cần fencing; tính sizing connection pool cho chat service khi scale lên 50 pod',
+    out: 'Design doc WhatsApp; design doc Distributed Lock; demo lock + fencing token; bảng tính connection pool',
+    quiz: [
+      { q: 'User A gửi 2 tin liên tiếp tới 2 gateway khác nhau, đảm bảo thứ tự thế nào?', a: 'Không dựa vào timestamp của điện thoại hay từng gateway. Route mọi tin của cùng `conversation_id` về cùng partition, hoặc cấp `sequence_id` tăng dần theo từng cuộc hội thoại.' },
+      { q: 'Redis chết giữa chừng thì lock còn an toàn không?', a: 'Với master-replica bất đồng bộ: master cấp lock cho A rồi chết trước khi đồng bộ, replica lên master cấp trùng lock cho B. Cần ZooKeeper/etcd (Zab/Raft) khi đòi hỏi correctness, kèm fencing token.' },
+      { q: 'Chuyển sang virtual thread có giải được giới hạn 100 kết nối của Postgres không?', a: 'Không. Virtual thread giúp app có hàng trăm nghìn luồng nhẹ, nhưng mọi luồng gọi DB vẫn bị chặn ở HikariCP pool; mở thêm kết nối vật lý thì Postgres sập. Nút cổ chai chỉ dời xuống DB.' }
+    ]
+  },
+  {
+    n: 13, tag: 'Bổ sung', title: 'Design Payment System / Digital Wallet + Flash Sale / Ticketmaster',
+    learn: [
+      { label: 'Payment', text: 'Idempotency key cho mọi API trừ tiền; state machine của giao dịch; double-entry ledger (bút toán nợ và có bằng nhau, tổng bằng 0, ledger chỉ append); tích hợp payment provider qua webhook và retry; đối soát cuối ngày (reconciliation) giữa ledger nội bộ và báo cáo của provider; chọn pessimistic hay optimistic locking khi trừ số dư (nối tuần 4); Saga hoặc TCC khi giao dịch chạm nhiều service (nối tuần 10)' },
+      { label: 'Flash Sale / Ticketmaster', text: '100 nghìn user bấm mua cùng lúc; giữ chỗ (reservation) có TTL rồi mới thanh toán; trừ tồn kho nguyên tử trên Redis bằng Lua rồi ghi đơn bất đồng bộ qua queue; chống overselling; hot key tồn kho (áp lại Shard Counter tuần 11); waiting room ảo và rate limit theo user; chống bot' }
+    ],
+    read: 'Alex Xu Vol 2: Payment System; Alex Xu Vol 2: Digital Wallet; Alex Xu Vol 2: Hotel Reservation System',
+    do: 'Mô hình ledger trên Postgres (bảng `account` và `ledger_entry`) với kiểm tra tổng bút toán mỗi giao dịch bằng 0; script bắn 10 nghìn request mua cùng 100 vé vào Redis Lua, kiểm tra không bán vượt; **tự quay video mock 45 phút (lần 2)** cho bài Payment hoặc Flash Sale để so với tuần 6',
+    out: 'Design doc Payment; design doc Flash Sale; sơ đồ luồng reconciliation; video tự mock lần 2',
+    quiz: [
+      { q: 'Provider báo thành công nhưng webhook không tới, hệ thống phát hiện và sửa thế nào?', a: 'Job polling chủ động hỏi PSP các giao dịch `PENDING` quá X phút; chốt chặn cuối là reconciliation đối soát file settlement cuối ngày, phát hiện lệch và ghi bút toán điều chỉnh.' },
+      { q: 'Vé đã giữ chỗ nhưng user không thanh toán, trả vé về kho lúc nào và bằng cơ chế gì?', a: 'Reservation có `expires_at` (5–10 phút); delayed queue hoặc job quét đơn hết hạn chuyển sang `EXPIRED` và cộng hoàn tồn kho một cách idempotent.' }
+    ]
+  },
+  {
+    n: 14, tag: 'Session 8 + bổ sung', title: 'Design Search System + News Feed + Notification',
+    learn: [
+      { label: 'Search', text: 'Ingestion hoặc crawler; tokenization; inverted index; xếp hạng TF-IDF/BM25; shard theo document vs theo term; scatter-gather khi query và xử lý shard chậm; replication; cập nhật index gần realtime (NRT); autocomplete bằng trie và cache top-k' },
+      { label: 'News Feed', text: 'Fan-out on write (push) vs fan-out on read (pull); xử lý celebrity bằng mô hình lai; feed cache; phân trang bằng cursor' },
+      { label: 'Notification', text: 'Nhiều kênh (push, SMS, email); hàng đợi tách biệt theo kênh; retry, dedup, rate limit cho từng user; template và tùy chọn tắt thông báo (opt-out)' }
+    ],
+    read: 'Alex Xu Vol 1 chương 10 (notification); Alex Xu Vol 1 chương 11 (news feed); Alex Xu Vol 1 chương 13 (search autocomplete); tài liệu Elasticsearch phần shard và replica',
+    do: '',
+    out: 'Design doc sâu Search; design doc sâu News Feed; HLD Notification kèm checklist edge-case',
+    quiz: [
+      { q: 'Query "java senior" chạy qua 20 shard thì p99 latency phụ thuộc vào gì?', a: 'Scatter-gather phải chờ đủ 20 shard, nên latency bị quyết định bởi shard chậm nhất (tail latency amplification). Giảm bằng hedged request tới replica, hoặc timeout cắt sớm và trả kết quả một phần.' },
+      { q: 'Celebrity 50 triệu follower đăng bài thì feed cập nhật ra sao?', a: 'Không fan-out on write (50 triệu lệnh ghi). Mô hình lai: user thường push vào inbox follower; celebrity chỉ ghi timeline riêng, follower merge lúc đọc.' }
+    ]
+  },
+  {
+    n: 15, tag: 'Session 12', title: 'Thực chiến phòng thi & chốt offer',
+    learn: [
+      { label: 'Đề mock mới (chưa làm ở tuần trước)', text: 'Design Web Crawler; Design Stock Exchange / Matching Engine; Design Distributed Job Scheduler; Design Metrics Monitoring & Alerting System' },
+      { label: 'Đàm phán lương', text: 'Tra mức thị trường trên levels.fyi và Glassdoor theo level và thành phố; tách tổng thu nhập thành base, bonus, cổ phiếu, sign-on; cố gắng không đưa con số trước; dùng nhiều offer làm đòn bẩy một cách trung thực; đàm phán cả gói chứ không chỉ base; mọi cam kết phải có trong offer bằng văn bản' }
+    ],
+    read: 'levels.fyi và Glassdoor cho level mục tiêu; lại toàn bộ lỗ hổng trong Sổ tay',
+    do: '3–4 buổi mock 45–60 phút với đồng nghiệp senior hoặc Pramp, interviewing.io, Hello Interview; chấm mỗi buổi theo rubric 5 tiêu chí thang 1–4; quiz lại toàn bộ thẻ trade-off; làm lại 2 bài có điểm thấp nhất',
+    out: 'Bảng điểm 3–4 buổi mock; đối chiếu video tự mock tuần 6 và tuần 13; kế hoạch duy trì: 1 bài thiết kế mỗi tuần và 10 thẻ trade-off mỗi ngày',
+    quiz: []
+  }
+];
+
+const ADVANTAGE = [
+  { from: 'IBM MQ', concept: 'Queue vs pub/sub, persistent message, DLQ, at-least-once vs exactly-once, backpressure', use: 'Kể sự cố thật về message trùng hoặc mất, và cách xử lý bằng idempotency.' },
+  { from: 'Event Streams (Kafka)', concept: 'Partition, consumer group, ordering theo key, log compaction, stream processing', use: 'Giải thích vì sao chọn partition key, rebalance ảnh hưởng gì.' },
+  { from: 'API Connect, DataPower', concept: 'API Gateway, rate limiting, OAuth/JWT, reverse proxy, TLS termination', use: 'Bài Rate Limiter và câu hỏi Gateway vs Direct exposure là sân nhà.' },
+  { from: 'App Connect Enterprise', concept: 'Integration patterns, orchestration vs choreography, transformation', use: 'Nối thẳng sang Saga orchestration ở tuần 10.' },
+  { from: 'OpenShift', concept: 'Container, autoscaling, sidecar, service mesh, health check', use: 'Ví dụ khi nói về deploy, scaling, sidecar pattern.' },
+  { from: 'Java, Spring', concept: 'Microservice, connection pool, thread model, GC pause, Resilience4j', use: 'Code mẫu cho circuit breaker, retry, rate limiter, Snowflake ID.' }
+];
+const GAPS = [
+  { text: 'Database internals và concurrency control: B-tree vs LSM-tree, isolation level, pessimistic vs optimistic locking, replication, sharding', week: 4 },
+  { text: 'Consensus và failure detection: Raft, leader election, quorum, fencing token', week: 7 },
+  { text: 'Ước lượng nhanh QPS, storage, bandwidth', page: 'cheat' },
+  { text: 'Hệ thống quy mô lớn: geo, chat, payment, flash sale, search, feed', week: 11 }
+];
+const SIGNALS = [
+  ['Dẫn dắt', 'Theo câu hỏi của interviewer', 'Tự dẫn buổi, tự hỏi "giờ mình đi sâu vào X nhé"'],
+  ['Trade-off', 'Biết các lựa chọn', 'Nêu cái được và cái mất kèm số liệu, chọn dứt khoát'],
+  ['Deep dive', 'Đúng ở mức khái niệm', 'Đi tới chi tiết: schema, key, thuật toán, race condition'],
+  ['Sự cố', 'Nhắc tới replication', 'Phân tích từng điểm lỗi, cách phát hiện và cách phục hồi'],
+  ['Vận hành', 'Ít đề cập', 'Monitoring, deploy, migration, chi phí'],
+  ['Độ đơn giản', 'Hay thêm công nghệ cho đủ bộ', 'Biết khi nào không cần Kafka, không cần microservice']
+];
+const PRINCIPLES = [
+  'Mỗi khái niệm luôn đi kèm câu hỏi "đổi lại mất gì, khi nào chọn cách kia". Interviewer chấm trade-off, không chấm định nghĩa.',
+  'Tự làm bài thiết kế trước, xem lời giải sau. Xem trước thì chỉ nhớ, không luyện được phản xạ.',
+  'Nói to khi làm bài. Vòng system design là bài thi giao tiếp ngang với bài thi kỹ thuật.'
+];
+const RHYTHM = [
+  { d: 'T2', t: 'Đọc & ôn 1h' }, { d: 'T3', t: 'Đọc & ôn 1h' }, { d: 'T4', t: 'Đọc & ôn 1h' }, { d: 'T5', t: 'Đọc & ôn 1h' }, { d: 'T6', t: 'Đọc & ôn 1h' },
+  { d: 'T7', t: 'Lab / vẽ 3h' }, { d: 'CN', t: 'Đối chiếu & viết doc 2–3h' }
+];
+
+const STEP_BASE = [
+  { name: 'Làm rõ requirements', lead: 'Trước khi vẽ, mình chốt phạm vi: 3 chức năng chính, quy mô, latency và consistency mong muốn. Phần ngoài phạm vi mình ghi lại để sau nhé.', ph: 'Functional, non-functional (DAU, latency, availability, consistency), ngoài phạm vi…' },
+  { name: 'Ước lượng back-of-the-envelope', lead: 'Mình ước lượng nhanh, chỉ những con số làm đổi thiết kế: QPS đỉnh khoảng bao nhiêu, storage 5 năm khoảng bao nhiêu.', ph: 'QPS đọc / ghi, QPS đỉnh, storage, bandwidth…' },
+  { name: 'Thiết kế API', lead: 'Mình định nghĩa 3–5 API chính trước; các API ghi đều nhận idempotency key.', ph: 'POST /v1/…, GET /v1/…, phân trang cursor, idempotency key…' },
+  { name: 'Data model', lead: 'Access pattern chính là X, nên mình chọn key là Y và loại DB là Z vì…', ph: 'Entity, khoá, access pattern, loại DB, partition key…' },
+  { name: 'High-level design', lead: 'Mình đi hết luồng ghi trước rồi tới luồng đọc, để mọi hộp trên sơ đồ đều có lý do tồn tại.', ph: 'Client → gateway → service → queue → DB/cache. Luồng ghi, luồng đọc…' },
+  { name: 'Deep dive & trade-off', lead: 'Giờ mình chủ động đi sâu vào thành phần X vì đây là nút cổ chai lớn nhất nhé. Có hai cách, mình chọn cách A vì…', ph: '1–2 thành phần khó nhất: phương án, được gì, mất gì, vì sao chọn…' },
+  { name: 'Mở rộng, sự cố & observability', lead: 'Nếu tải tăng 10 lần, chỗ gãy đầu tiên là X. Mình theo dõi bằng metric Y và alert theo SLO; khi Z chết thì hệ thống xử lý thế này.', ph: 'Bottleneck khi ×10, điểm lỗi và cách phục hồi, metric, alert, trace…' }
+];
+const STEP_MIN = { 45: [5, 5, 5, 5, 10, 10, 5], 60: [7, 5, 6, 6, 13, 15, 8] };
+const RUBRIC = ['Làm rõ requirements', 'Ước lượng', 'High-level design', 'Deep dive & trade-off', 'Giao tiếp & quản lý thời gian'];
+const RUBRIC_LV = ['Chưa đạt', 'Mid', 'Senior', 'Xuất sắc'];
+const PROBLEMS = ['Rate Limiter', 'Unique ID Generator', 'TinyURL', 'Pastebin', 'Google Drive / Dropbox', 'YouTube', 'Uber', 'Shard Counter', 'WhatsApp', 'Distributed Lock', 'Payment System / Digital Wallet', 'Flash Sale / Ticketmaster', 'Search System', 'News Feed', 'Notification System', 'Web Crawler', 'Stock Exchange / Matching Engine', 'Distributed Job Scheduler', 'Metrics Monitoring & Alerting', 'Key-Value Store'];
+
+const SEED_CARDS = [
+  { id: 'c01', week: 7, title: 'Strong vs Eventual Consistency', def: 'Strong: mọi lần đọc thấy lần ghi mới nhất. Eventual: các bản sao sẽ hội tụ, trong một khoảng có thể đọc dữ liệu cũ.', a: 'Sai một lần là mất tiền hoặc vi phạm ràng buộc (số dư, tồn kho, lock). Mất: latency cao hơn, giảm availability khi có partition.', b: 'Đọc dữ liệu cũ vài giây vẫn chấp nhận được (like, feed, view count). Mất: phải xử lý conflict và UX đọc lại dữ liệu cũ.', real: 'Spanner, etcd (strong); DynamoDB mặc định, Cassandra, DNS (eventual).', line: 'Mình tách theo từng loại dữ liệu: số dư cần strong, còn số like thì eventual là đủ và rẻ hơn nhiều.' },
+  { id: 'c02', week: 7, title: 'Latency vs Throughput', def: 'Latency là thời gian xử lý một request; throughput là số request xử lý được mỗi giây.', a: 'Tối ưu latency cho luồng user đang chờ (checkout, search). Mất: tài nguyên dư, ít batching.', b: 'Tối ưu throughput cho job nền, ingestion, analytics bằng batching, nén, pipeline. Mất: từng item chờ lâu hơn.', real: 'Kafka producer `linger.ms` / `batch.size`; Nagle algorithm của TCP.', line: 'Luồng ghi log mình bật batching để tăng throughput, chấp nhận thêm vài chục ms vì không user nào chờ nó.' },
+  { id: 'c03', week: 7, title: 'ACID vs BASE', def: 'ACID: transaction nguyên tử, nhất quán, cô lập, bền. BASE: basically available, soft state, eventual consistency.', a: 'Tiền, đơn hàng, ledger. Mất: khó scale ngang, transaction phân tán đắt.', b: 'Dữ liệu khối lượng lớn chấp nhận lệch tạm thời. Mất: logic bù trừ và đối soát dồn lên tầng app.', real: 'Postgres, MySQL InnoDB (ACID); Cassandra, DynamoDB (BASE).', line: 'Ledger nằm trong DB ACID; các read model và counter xung quanh có thể BASE.' },
+  { id: 'c04', week: 7, title: 'Read-through vs Write-through', def: 'Read-through: cache tự nạp từ DB khi miss. Write-through: ghi cache và DB đồng bộ trong cùng thao tác.', a: 'Đọc nhiều, muốn code app đơn giản. Mất: lần đọc đầu chậm, có thể stale nếu DB bị đổi từ bên ngoài.', b: 'Cần cache khớp DB ngay sau ghi. Mất: latency ghi tăng, cache chứa cả dữ liệu ít ai đọc.', real: 'Caffeine LoadingCache, DAX trước DynamoDB.', line: 'Mặc định mình dùng cache-aside + TTL ngắn; write-through chỉ cho dữ liệu vừa ghi là đọc lại ngay như profile.' },
+  { id: 'c05', week: 7, title: 'Batch vs Stream Processing', def: 'Batch xử lý tập dữ liệu lớn theo lô định kỳ; stream xử lý từng sự kiện ngay khi tới.', a: 'Cần kết quả chính xác trên tập lớn, không gấp (báo cáo, đối soát cuối ngày). Mất: trễ từ giờ tới ngày.', b: 'Cần phản ứng trong giây (fraud, alert, dashboard realtime). Mất: phức tạp về state, window, late event, exactly-once.', real: 'Spark, Hadoop (batch); Kafka Streams, Flink (stream).', line: 'Fraud check chạy stream trong vài giây, còn reconciliation chạy batch cuối ngày làm chốt chặn đúng sai.' },
+  { id: 'c06', week: 7, title: 'Load Balancer vs API Gateway', def: 'LB chia tải giữa các instance cùng loại; gateway là cửa vào xử lý routing theo API, auth, rate limit, transform.', a: 'Một service nhiều instance, không cần chính sách API. Mất: không có auth và quota tập trung.', b: 'Nhiều service, nhiều loại client, cần policy thống nhất. Mất: thêm một hop, có thể thành bottleneck.', real: 'AWS ALB, Nginx (LB); Kong, IBM API Connect, AWS API Gateway.', line: 'Thực tế dùng cả hai: LB phía trước, gateway ngay sau để áp auth và quota, rồi mỗi service lại có LB nội bộ.' },
+  { id: 'c07', week: 8, title: 'API Gateway vs Direct Exposure', def: 'Đi qua gateway tập trung, hay client/service gọi thẳng vào service đích.', a: 'Client bên ngoài: bảo mật, versioning, rate limit, gom API. Mất: thêm latency, SPOF nếu không HA.', b: 'Service nội bộ trong mesh cần latency thấp. Mất: mỗi service tự lo auth; observability phải đến từ mesh.', real: 'Gateway ở edge (Zuul, Kong); gRPC east-west qua Istio.', line: 'North-south đi qua gateway, east-west gọi thẳng qua service mesh có mTLS.' },
+  { id: 'c08', week: 8, title: 'Forward Proxy vs Reverse Proxy', def: 'Forward proxy đứng phía client, đại diện client đi ra ngoài; reverse proxy đứng phía server, đại diện server nhận request.', a: 'Cần kiểm soát hoặc ẩn traffic đi ra (lọc web công ty, egress proxy). Mất: thêm điểm cấu hình phía client.', b: 'Cần TLS termination, cache, LB, che giấu backend. Mất: thêm hop, phải HA.', real: 'Squid (forward); Nginx, Envoy, DataPower (reverse).', line: 'Gọi PSP bên ngoài qua egress proxy để có IP cố định cho whitelist; traffic vào đi qua reverse proxy.' },
+  { id: 'c09', week: 8, title: 'SQL vs NoSQL', def: 'SQL: schema quan hệ, join, transaction nhiều bảng. NoSQL: mô hình key-value, document, wide-column, graph tối ưu cho access pattern cụ thể.', a: 'Quan hệ phức tạp, cần join và transaction nhiều bảng. Mất: scale ghi ngang khó, sharding thủ công.', b: 'Access pattern biết trước theo key, ghi cực lớn, scale ngang. Mất: không join, transaction hạn chế, phải denormalize theo query.', real: 'Postgres cho đơn hàng; Cassandra/ScyllaDB cho tin nhắn của Discord; DynamoDB cho giỏ hàng.', line: 'Mình chọn theo access pattern: lịch sử chat đọc theo conversation_id và thời gian nên wide-column hợp hơn bảng quan hệ.' },
+  { id: 'c10', week: 8, title: 'Primary-Replica vs Peer-to-Peer Replication', def: 'Primary-replica: một node nhận ghi rồi sao chép đi. Peer-to-peer: nhiều node cùng nhận ghi (multi-leader, leaderless).', a: 'Cần thứ tự ghi đơn giản, tránh conflict. Mất: primary là nút cổ chai ghi, failover cần leader election.', b: 'Cần ghi ở nhiều nơi, chịu lỗi cao. Mất: phải giải conflict (LWW, vector clock, CRDT).', real: 'Postgres streaming replication; Cassandra, DynamoDB.', line: 'Dữ liệu tiền mình giữ một leader; giỏ hàng nhiều region thì chấp nhận multi-leader và merge.' },
+  { id: 'c11', week: 8, title: 'Data Compression vs Data Deduplication', def: 'Nén giảm kích thước một khối dữ liệu; dedup tránh lưu lại các khối giống hệt nhau.', a: 'Dữ liệu lặp bên trong một file hoặc stream (log, JSON). Mất: CPU khi nén và giải nén.', b: 'Nhiều file hoặc phiên bản dùng chung chunk (backup, Dropbox). Mất: index hash, chunking phức tạp, reference count khi xoá.', real: 'zstd/gzip trên Kafka; Dropbox chia chunk theo hash.', line: 'Google Drive mình dedup theo chunk hash ngay ở client, rồi nén từng chunk khi truyền.' },
+  { id: 'c12', week: 8, title: 'Server-side vs Client-side Caching', def: 'Cache ở phía hạ tầng (Redis, CDN) hay ở phía client (browser, app, HTTP cache).', a: 'Nhiều user dùng chung dữ liệu, cần invalidate tập trung. Mất: vẫn tốn một round trip mạng.', b: 'Dữ liệu ít đổi, theo từng user. Mất: khó invalidate, dữ liệu cũ nằm trên máy client.', real: 'Redis cluster; HTTP `ETag` + 304; cache offline của app mobile.', line: 'Static asset có hash trong tên file cache 1 năm ở client; dữ liệu động dùng ETag để chỉ tải lại khi đổi.' },
+  { id: 'c13', week: 8, title: 'REST vs gRPC', def: 'REST: resource qua HTTP + JSON. gRPC: RPC qua HTTP/2 + Protobuf, có contract và streaming.', a: 'API công khai, browser, dễ debug, cache HTTP tốt. Mất: payload lớn hơn, contract lỏng.', b: 'Service nội bộ cần latency thấp, streaming, contract chặt. Mất: browser cần gRPC-Web, khó debug bằng curl.', real: 'Stripe API (REST); service nội bộ của Google, Netflix (gRPC).', line: 'Ngoài edge mình expose REST, bên trong các service nói chuyện bằng gRPC để có schema và streaming.' },
+  { id: 'c14', week: 9, title: 'Polling vs Long Polling vs Webhooks', def: 'Polling hỏi định kỳ; long polling giữ request tới khi có dữ liệu; webhook là bên kia chủ động gọi URL của mình khi có sự kiện.', a: 'Polling / long polling khi mình không có endpoint public hoặc bên kia không hỗ trợ push. Mất: request rỗng, trễ theo chu kỳ.', b: 'Webhook khi tích hợp server-server, sự kiện thưa. Mất: phải kiểm chữ ký HMAC, retry, idempotency, xử lý webhook bị mất.', real: 'Stripe, GitHub webhooks; long polling của Amazon SQS.', line: 'Webhook là đường chính, nhưng luôn có job polling các giao dịch PENDING để bắt webhook bị mất.' },
+  { id: 'c15', week: 9, title: 'CDN vs Direct Server Serving', def: 'Phục vụ nội dung từ edge gần user, hay trực tiếp từ origin.', a: 'Nội dung tĩnh hoặc ít đổi, user phân tán toàn cầu. Mất: chi phí, invalidation chậm, khó với nội dung riêng tư.', b: 'Nội dung động, cá nhân hoá, user tập trung một vùng. Mất: latency xa, origin chịu toàn bộ băng thông.', real: 'Netflix Open Connect, Cloudflare; API cá nhân hoá từ origin.', line: 'Video và thumbnail qua CDN; API danh sách gợi ý cá nhân đi thẳng origin.' },
+  { id: 'c16', week: 9, title: 'Serverless vs Server-based', def: 'Chạy hàm theo sự kiện, trả tiền theo lần gọi; hay chạy service lâu dài trên VM/container.', a: 'Tải thất thường, job ngắn, event-driven (transcode, resize ảnh). Mất: cold start, giới hạn thời gian chạy, khó giữ kết nối DB.', b: 'Tải ổn định, nhạy latency, kết nối dài (WebSocket). Mất: trả tiền cả khi idle, tự lo scaling.', real: 'AWS Lambda resize ảnh S3; chat gateway chạy trên Kubernetes/OpenShift.', line: 'Tải đều và cao thì server-based rẻ hơn; serverless thắng khi tải là các đỉnh ngắn và thưa.' },
+  { id: 'c17', week: 9, title: 'Hybrid Cloud vs All-Cloud Storage', def: 'Giữ một phần dữ liệu on-prem và một phần trên cloud, hay đưa hết lên cloud.', a: 'Có yêu cầu data residency, dữ liệu nhạy cảm, chi phí egress lớn. Mất: vận hành hai môi trường, đồng bộ phức tạp.', b: 'Muốn đơn giản, co giãn nhanh, dùng managed service. Mất: phụ thuộc vendor, chi phí egress và lưu trữ dài hạn.', real: 'Ngân hàng giữ core banking on-prem, analytics trên cloud; Dropbox chuyển từ S3 về hạ tầng riêng (Magic Pocket).', line: 'Dữ liệu bị luật giữ trong nước để bản gốc on-prem, chỉ đẩy dữ liệu đã ẩn danh lên cloud.' },
+  { id: 'c18', week: 9, title: 'Token Bucket vs Leaky Bucket', def: 'Token bucket nạp token đều, cho phép xài dồn tới dung lượng bucket; leaky bucket xả request ra với tốc độ cố định.', a: 'Cho phép burst hợp lệ (mở app gọi 10 API cùng lúc). Mất: downstream vẫn phải chịu burst.', b: 'Downstream cần tốc độ đều (gọi PSP, gửi SMS). Mất: burst bị xếp hàng hoặc drop, latency tăng.', real: 'AWS API Gateway, Stripe (token bucket); Nginx `limit_req` (leaky bucket).', line: 'Ở gateway mình cho burst bằng token bucket, còn hàng gửi SMS tới nhà mạng thì xả đều bằng leaky bucket.' },
+  { id: 'c19', week: 9, title: 'Read-heavy vs Write-heavy System', def: 'Thiết kế tối ưu cho đường đọc hay cho đường ghi, xuất phát từ tỷ lệ đọc:ghi.', a: 'Read-heavy: cache nhiều tầng, read replica, CDN, denormalize. Mất: invalidation, dữ liệu cũ.', b: 'Write-heavy: queue hấp thụ tải, batch / write-behind, LSM-tree, shard theo hash. Mất: đọc chậm hơn, consistency yếu hơn.', real: 'TinyURL, news feed (read-heavy); metrics, log, location update của Uber (write-heavy).', line: 'Mình xác định tỷ lệ đọc ghi đầu tiên vì nó quyết định gần như mọi lựa chọn storage phía sau.' },
+  { id: 'c20', week: 10, title: 'Saga Orchestration vs Choreography', def: 'Orchestration: một bộ điều phối gọi từng bước. Choreography: các service phản ứng với event của nhau.', a: 'Nhiều bước, cần thấy trạng thái tập trung, dễ debug. Mất: orchestrator chứa nhiều logic và thành điểm phụ thuộc.', b: 'Ít bước, các service độc lập, muốn ghép lỏng. Mất: khó theo dõi luồng tổng, dễ thành chuỗi event rối.', real: 'Temporal, Camunda, App Connect (orchestration); chuỗi event Kafka (choreography).', line: 'Từ 3–4 bước trở lên mình chọn orchestration để có một chỗ thấy trạng thái và chạy bù trừ.' },
+  { id: 'c21', week: 10, title: 'TCC vs 2PC vs Saga', def: '2PC khoá tài nguyên qua prepare/commit; TCC giữ chỗ ở tầng nghiệp vụ (Try) rồi Confirm/Cancel; Saga chạy các bước local và bù trừ khi lỗi.', a: '2PC khi các bên cùng hỗ trợ XA và cần atomic thật. Mất: block khi coordinator chết, throughput thấp.', b: 'TCC khi phải giữ tài nguyên ngay (giữ tiền, giữ vé); Saga khi chấp nhận trạng thái trung gian và bù trừ sau. Mất: TCC cần 3 API mỗi bước, Saga lộ trạng thái trung gian.', real: 'XA trong JTA (2PC); Seata TCC; Saga đặt vé máy bay + khách sạn.', line: 'Trừ tiền ví mình dùng TCC để giữ tiền ở bước Try; gửi email, cộng điểm thì Saga là đủ.' },
+  { id: 'c22', week: 4, title: 'Pessimistic vs Optimistic Locking', def: 'Pessimistic khoá dòng trước khi sửa (`SELECT ... FOR UPDATE`); optimistic kiểm tra version lúc ghi và retry khi lệch.', a: 'Tranh chấp cao trên cùng một dòng. Mất: chờ lock, nguy cơ deadlock, giảm song song.', b: 'Tranh chấp thấp. Mất: bão retry khi tranh chấp cao.', real: 'Trừ số dư merchant lớn (pessimistic); sửa profile, giỏ hàng với JPA `@Version` (optimistic).', line: 'Mình đo contention: tài khoản merchant nóng dùng FOR UPDATE, tài khoản user thường dùng @Version.' },
+  { id: 'c23', week: 4, title: 'B-Tree vs LSM-Tree', def: 'B-tree cập nhật trang tại chỗ; LSM-tree ghi tuần tự vào memtable rồi flush thành SSTable và compaction.', a: 'Đọc nhiều, cần range query và update tại chỗ. Mất: ghi ngẫu nhiên, write amplification.', b: 'Ghi cực lớn, ghi tuần tự. Mất: đọc phải xem nhiều SSTable (cần Bloom filter), compaction tốn I/O.', real: 'Postgres, MySQL InnoDB (B-tree); Cassandra, RocksDB, ScyllaDB (LSM).', line: 'Location update của Uber là write-heavy nên mình chọn store LSM, kèm Bloom filter để đọc không quá chậm.' },
+  { id: 'c24', week: 11, title: 'Geohash vs Quadtree vs H3', def: 'Geohash mã hoá toạ độ thành chuỗi theo ô chữ nhật; quadtree chia không gian theo mật độ; H3 chia thế giới thành ô lục giác.', a: 'Geohash khi muốn index đơn giản bằng prefix trong Redis/DB. Mất: ô méo ở vĩ độ cao, phải query 9 ô.', b: 'Quadtree khi mật độ chênh lệch lớn; H3 khi cần khoảng cách đều giữa ô láng giềng cho dispatch, pricing. Mất: quadtree phải dựng trong memory, H3 cần thư viện riêng.', real: 'Redis GEO (geohash); Uber H3; quadtree trong các proximity service kiểu Yelp.', line: 'Mình bắt đầu bằng geohash trong Redis; khi cần surge pricing theo vùng đều nhau thì chuyển sang H3.' },
+  { id: 'c25', week: 14, title: 'Fan-out on Write vs Fan-out on Read', def: 'Push bài mới vào feed của từng follower lúc ghi, hay gom bài từ những người mình follow lúc đọc.', a: 'Đa số user ít follower, cần đọc feed nhanh. Mất: write amplification với celebrity.', b: 'Tài khoản rất nhiều follower. Mất: đọc chậm vì phải gom và merge lúc mở app.', real: 'Twitter / X và Instagram dùng mô hình lai.', line: 'Mình dùng lai: push cho user thường, pull cho celebrity, merge khi đọc.' },
+  { id: 'c26', week: 3, title: 'At-least-once vs Exactly-once', def: 'At-least-once: message có thể tới nhiều lần nhưng không mất. Exactly-once: mỗi message có hiệu lực đúng một lần.', a: 'At-least-once + consumer idempotent cho đa số hệ thống. Mất: phải dedup ở nơi ghi.', b: 'Exactly-once (Kafka transactions) khi pipeline nằm gọn trong Kafka. Mất: throughput giảm, chỉ đúng trong biên Kafka.', real: 'IBM MQ persistent + syncpoint; Kafka EOS cho Kafka Streams.', line: 'Exactly-once end-to-end gần như không có; mình làm at-least-once và idempotent ở chỗ ghi cuối.' },
+  { id: 'c27', week: 2, title: 'Sticky Session vs Stateless + Shared Store', def: 'Gắn user vào một instance cố định, hay để mọi instance như nhau và đẩy state ra store chung.', a: 'Sticky khi state nằm trong memory và cần đơn giản trước mắt. Mất: lệch tải, mất session khi node chết.', b: 'Stateless + Redis khi cần autoscale tự do. Mất: thêm round trip, Redis phải HA.', real: 'WebSocket gateway giữ kết nối nhưng state phiên đặt trong Redis.', line: 'Kết nối WebSocket buộc phải gắn node, nhưng state phiên mình vẫn để ở Redis để node chết thì client nối lại node khác được.' }
+];
+
+const CHEAT = [
+  ['Thời gian', '1 ngày', '86.400 giây ≈ 10^5 giây'],
+  ['QPS mẫu', '1 triệu request/ngày', '≈ 12 QPS'],
+  ['QPS mẫu', '100 triệu request/ngày', '≈ 1.200 QPS'],
+  ['Lũy thừa 2', '2^10 / 2^20 / 2^30 / 2^40', '≈ 1 KB / 1 MB / 1 GB / 1 TB'],
+  ['Latency', 'Đọc RAM', '~100 ns'],
+  ['Latency', 'Đọc ngẫu nhiên SSD', '~100 µs'],
+  ['Latency', 'Round trip cùng data center', '~0,5 ms'],
+  ['Latency', 'Seek HDD', '~10 ms'],
+  ['Latency', 'Round trip liên lục địa', '~150 ms'],
+  ['Availability', '99,9%', '≈ 43 phút downtime/tháng'],
+  ['Availability', '99,99%', '≈ 4,3 phút downtime/tháng'],
+  ['Availability', '99,999%', '≈ 26 giây downtime/tháng']
+];
+const RESOURCES = [
+  { name: 'Designing Data-Intensive Applications (Martin Kleppmann)', weeks: '1, 4, 7, 8', note: 'Nền tảng lý thuyết; bản 1 hay bản 2 đều dùng được' },
+  { name: 'System Design Interview Vol 1 & Vol 2 (Alex Xu)', weeks: '5, 6, 8, 9, 11–14', note: 'Lời giải tham khảo cho phần lớn đề' },
+  { name: 'Patterns of Distributed Systems (Unmesh Joshi)', weeks: '7', note: 'HeartBeat, Leader and Followers, Quorum', url: 'https://martinfowler.com/articles/patterns-of-distributed-systems/' },
+  { name: 'Raft — bài báo và mô phỏng', weeks: '7', note: 'Xem mô phỏng trước, đọc bài báo sau', url: 'https://raft.github.io' },
+  { name: 'High Performance Browser Networking (Ilya Grigorik)', weeks: '2', note: 'HTTP/2, WebSocket', url: 'https://hpbn.co' },
+  { name: 'microservices.io & Microservices Patterns (Chris Richardson)', weeks: '10', note: 'Saga, CQRS, Outbox', url: 'https://microservices.io' },
+  { name: 'Monolith to Microservices (Sam Newman)', weeks: '10', note: 'Strangler fig, tách database' },
+  { name: 'How to do distributed locking (Martin Kleppmann)', weeks: '12', note: 'Fencing token, phê bình Redlock', url: 'https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html' },
+  { name: 'ByteByteGo, Hello Interview', weeks: 'Xuyên suốt', note: 'Bài viết ngắn, đề mẫu, mock' }
+];
+
+/* =========================================================
+   MODEL & STATE HELPERS
+   ========================================================= */
+function splitItems(text) {
+  if (!text) return [];
+  const out = []; let depth = 0, cur = '';
+  for (const ch of text) {
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    if (ch === ';' && depth === 0) { if (cur.trim()) out.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out.map(s => s.replace(/\.$/, ''));
+}
+const WM = WEEKS.map(w => {
+  const mk = (sec, txt) => splitItems(txt).map((t, i) => ({ id: `w${w.n}-${sec}-${i}`, text: t }));
+  const learn = w.learn.map((g, gi) => ({ label: g.label, items: splitItems(g.text).map((t, i) => ({ id: `w${w.n}-learn-${gi}-${i}`, text: t })) }));
+  const read = mk('read', w.read), lab = mk('do', w.do), out = mk('out', w.out);
+  const all = [...learn.flatMap(g => g.items), ...read, ...lab, ...out];
+  return Object.assign({}, w, { learn, read, lab, out, all, phase: phaseOf(w.n) });
+});
+const TOTAL_ITEMS = WM.reduce((a, w) => a + w.all.length, 0);
+
+const DEFAULT_STATE = {
+  v: 1,
+  checks: {}, quiz: {}, links: {},
+  bench: { w4: [{}, {}, {}], w8: { rest: {}, grpc: {} } },
+  hikari: { pods: 50, pool: 20, maxConn: 100, cores: 8, spindle: 1 },
+  story: '', rhythm: {},
+  mock: { problem: '', duration: 45, sections: ['', '', '', '', '', '', ''], scores: [0, 0, 0, 0, 0] },
+  history: [], cards: [], cardEdits: {}, cardStatus: {}, gaps: [],
+  calc: { dau: 10, read: 20, write: 2, size: 1000, years: 5 },
+  ui: { page: 'dashboard', week: 1, phase: 0 }
+};
+function mergeState(raw) {
+  const d = DEFAULT_STATE;
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const obj = (k) => Object.assign({}, d[k], r[k] && typeof r[k] === 'object' && !Array.isArray(r[k]) ? r[k] : {});
+  return Object.assign({}, d, r, {
+    checks: obj('checks'), quiz: obj('quiz'), links: obj('links'), rhythm: obj('rhythm'),
+    cardEdits: obj('cardEdits'), cardStatus: obj('cardStatus'),
+    bench: { w4: Array.isArray(r.bench && r.bench.w4) ? r.bench.w4 : d.bench.w4, w8: Object.assign({ rest: {}, grpc: {} }, r.bench && r.bench.w8) },
+    hikari: obj('hikari'), calc: obj('calc'), ui: obj('ui'),
+    mock: Object.assign({}, d.mock, r.mock, {
+      sections: (r.mock && Array.isArray(r.mock.sections) && r.mock.sections.length === 7) ? r.mock.sections : d.mock.sections.slice(),
+      scores: (r.mock && Array.isArray(r.mock.scores) && r.mock.scores.length === 5) ? r.mock.scores : d.mock.scores.slice()
+    }),
+    history: Array.isArray(r.history) ? r.history : [], cards: Array.isArray(r.cards) ? r.cards : [], gaps: Array.isArray(r.gaps) ? r.gaps : []
+  });
+}
+function loadState() {
+  try { const s = localStorage.getItem(STORAGE_KEY); if (s) return mergeState(JSON.parse(s)); } catch (e) { }
+  return mergeState(null);
+}
+function setIn(o, p, v) {
+  if (!p.length) return v;
+  const [k, ...rest] = p;
+  const base = o == null ? (typeof k === 'number' ? [] : {}) : o;
+  const c = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  c[k] = setIn(base[k], rest, v);
+  return c;
+}
+const getIn = (o, p) => p.reduce((a, k) => (a == null ? undefined : a[k]), o);
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const fmt = (x, d = 1) => (Number.isFinite(x) ? x.toLocaleString('vi-VN', { maximumFractionDigits: d }) : '—');
+function fmtBytes(b) {
+  if (!Number.isFinite(b)) return '—';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']; let i = 0;
+  while (b >= 1000 && i < u.length - 1) { b /= 1000; i++; }
+  return fmt(b, b < 10 ? 2 : 1) + ' ' + u[i];
+}
+function isoWeekKey(d = new Date()) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y = t.getUTCFullYear();
+  const w = Math.ceil(((t - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
+  return `${y}-W${String(w).padStart(2, '0')}`;
+}
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+function computeStats(checks) {
+  const week = {}; let done = 0, hours = 0;
+  WM.forEach(w => {
+    const d = w.all.filter(i => checks[i.id]).length;
+    week[w.n] = { done: d, total: w.all.length };
+    done += d; hours += w.all.length ? (d / w.all.length) * 11 : 0;
+  });
+  const phase = {};
+  PHASES.forEach(p => {
+    const t = p.weeks.reduce((a, n) => a + week[n].total, 0), d = p.weeks.reduce((a, n) => a + week[n].done, 0);
+    phase[p.id] = { done: d, total: t };
+  });
+  return { week, phase, done, total: TOTAL_ITEMS, pct: TOTAL_ITEMS ? done / TOTAL_ITEMS : 0, hours };
+}
+
+/* Inline text: `code` và **bold** */
+function Inline({ text }) {
+  const parts = String(text || '').split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((p, i) => {
+    if (p.startsWith('`') && p.endsWith('`')) return html`<code key=${i} className="inl">${p.slice(1, -1)}</code>`;
+    if (p.startsWith('**') && p.endsWith('**')) return html`<strong key=${i} className="font-semibold text-slate-100">${p.slice(2, -2)}</strong>`;
+    return html`<${React.Fragment} key=${i}>${p}<//>`;
+  });
+}
+
+/* =========================================================
+   UI PRIMITIVES
+   ========================================================= */
+const btn = {
+  base: 'inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-40 disabled:cursor-not-allowed',
+  primary: 'bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2',
+  ghost: 'border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 px-3 py-2',
+  quiet: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 px-2 py-1.5',
+  ok: 'bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2',
+  warn: 'bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2',
+  danger: 'bg-rose-600 hover:bg-rose-500 text-white px-3 py-2'
+};
+const B = (k) => btn.base + ' ' + btn[k];
+const inputCls = 'w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
+const panel = 'rounded-xl border border-slate-800 bg-slate-900/60';
+
+function Bar({ value, cls = 'bg-indigo-500', h = 'h-1.5' }) {
+  const v = Math.max(0, Math.min(1, value || 0));
+  return html`<div className=${`w-full ${h} rounded-full bg-slate-800 overflow-hidden`} role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(v * 100)}>
+    <div className=${`${h} ${cls} rounded-full transition-all duration-500`} style=${{ width: (v * 100).toFixed(1) + '%' }}></div></div>`;
+}
+function Eyebrow({ children, className = '' }) {
+  return html`<div className=${'text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 ' + className}>${children}</div>`;
+}
+function Modal({ title, onClose, children, wide }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+  return html`<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-6" onClick=${e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className=${`w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[88dvh] overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/50`} role="dialog" aria-modal="true" aria-label=${title}>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-900 px-5 py-3">
+        <h2 className="text-sm font-semibold text-slate-100">${title}</h2>
+        <button className=${B('quiet')} onClick=${onClose} aria-label="Đóng"><${Icon} n="x" /></button>
+      </div>
+      <div className="p-5">${children}</div>
+    </div></div>`;
+}
+function CheckRow({ id, text, checked, onToggle }) {
+  return html`<label htmlFor=${id} className="group flex cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-slate-800/50">
+    <input id=${id} type="checkbox" checked=${!!checked} onChange=${e => onToggle(id, e.target.checked)} className="mt-[3px] h-4 w-4 shrink-0 rounded border-slate-600 accent-indigo-500" />
+    <span className=${`text-sm leading-relaxed ${checked ? 'text-slate-500' : 'text-slate-200'}`}><${Inline} text=${text} /></span>
+  </label>`;
+}
+
+/* =========================================================
+   1. DASHBOARD
+   ========================================================= */
+function Dashboard({ S, set, stats, go }) {
+  const wk = isoWeekKey();
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const rh = S.rhythm[wk] || {};
+  const rhDone = RHYTHM.filter((_, i) => rh[i]).length;
+  const allCards = getAllCards(S);
+  const known = allCards.filter(c => S.cardStatus[c.id] === 'known').length;
+  const words = (S.story || '').trim().split(/\s+/).filter(Boolean).length;
+  const secs = Math.round(words / 130 * 60);
+
+  const metric = (label, value, sub, bar, barCls) => html`<div className=${panel + ' p-4 flex flex-col gap-3 min-w-0'}>
+    <${Eyebrow}>${label}<//>
+    <div className="flex items-baseline gap-2"><span className="tnum text-3xl font-semibold text-slate-50">${value}</span><span className="text-sm text-slate-400">${sub}</span></div>
+    ${bar != null ? html`<${Bar} value=${bar} cls=${barCls} />` : null}
+  </div>`;
+
+  return html`<div className="flex flex-col gap-6">
+    <section className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold text-slate-50 sm:text-[28px]">Qua vòng System Design level Senior trong 15 tuần</h1>
+      <p className="prose-line text-sm text-slate-400">Khoảng 10–12 giờ mỗi tuần, tổng ~165 giờ. Mỗi tuần gồm Học, Đọc, Làm, Đầu ra và Tự kiểm tra; tick từng mục khi bạn thật sự làm được.</p>
+    </section>
+
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      ${metric('Tiến độ tổng thể', Math.round(stats.pct * 100) + '%', `${stats.done}/${stats.total} mục`, stats.pct, 'bg-indigo-500')}
+      ${metric('Giờ học ước tính', fmt(stats.hours, 0), '/ 165 giờ', stats.hours / 165, 'bg-emerald-500')}
+      <div className=${panel + ' p-4 flex flex-col gap-3 min-w-0'}>
+        <div className="flex items-center justify-between"><${Eyebrow}>Nhịp tuần này<//><span className="tnum text-xs text-slate-500">${wk}</span></div>
+        <div className="flex items-baseline gap-2"><span className="tnum text-3xl font-semibold text-slate-50">${rhDone}</span><span className="text-sm text-slate-400">/ 7 buổi</span></div>
+        <div className="grid grid-cols-7 gap-1">
+          ${RHYTHM.map((r, i) => html`<button key=${i} title=${r.t} aria-pressed=${!!rh[i]} onClick=${() => set(['rhythm', wk, i], !rh[i])}
+            className=${`tnum rounded-md border py-1.5 text-[11px] font-medium transition-colors ${rh[i] ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-600'} ${i === todayIdx ? 'ring-1 ring-indigo-400/60' : ''}`}>${r.d}</button>`)}
+        </div>
+        <div className="text-[11px] text-slate-500">T2–T6 đọc & ôn 1h · T7 lab 3h · CN viết doc 2–3h</div>
+      </div>
+      <div className=${panel + ' p-4 flex flex-col gap-3 min-w-0'}>
+        <${Eyebrow}>Đầu ra luyện đề<//>
+        <div className="flex items-end gap-6">
+          <div><div className="tnum text-3xl font-semibold text-slate-50">${S.history.length}</div><div className="text-xs text-slate-400">design doc đã lưu</div></div>
+          <div><div className="tnum text-3xl font-semibold text-slate-50">${known}<span className="text-base text-slate-500">/${allCards.length}</span></div><div className="text-xs text-slate-400">thẻ đã thuộc</div></div>
+        </div>
+        <${Bar} value=${allCards.length ? known / allCards.length : 0} cls="bg-amber-500" />
+      </div>
+    </section>
+
+    <section className=${panel + ' p-4'}>
+      <div className="mb-3 flex items-center justify-between gap-3"><${Eyebrow}>Tiến độ theo phase<//>
+        <div className="flex gap-3 text-[11px] text-slate-500">${Object.entries(KIND).map(([k, v]) => html`<span key=${k} className="flex items-center gap-1.5"><span className=${'h-2 w-2 rounded-full ' + v.dot}></span>${v.label}</span>`)}</div></div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        ${PHASES.map(p => { const ps = stats.phase[p.id]; const k = KIND[p.kind]; return html`<button key=${p.id} onClick=${() => go('roadmap', { week: p.weeks[0], phase: p.id })} className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-slate-600">
+          <div className="flex items-center justify-between gap-2"><span className=${'text-xs font-semibold ' + k.text}>Phase ${p.id} · Tuần ${p.weeks[0]}${p.weeks.length > 1 ? '–' + p.weeks[p.weeks.length - 1] : ''}</span><span className="tnum text-xs text-slate-400">${ps.done}/${ps.total}</span></div>
+          <div className="text-sm text-slate-200">${p.name}</div>
+          <${Bar} value=${ps.total ? ps.done / ps.total : 0} cls=${k.bar} />
+        </button>`; })}
+      </div>
+    </section>
+
+    <section className=${panel + ' overflow-hidden'}>
+      <div className="border-b border-slate-800 px-4 py-3"><h2 className="text-sm font-semibold text-slate-100">Lợi thế cạnh tranh cá nhân · Java / Spring / Integration</h2>
+        <p className="mt-0.5 text-xs text-slate-500">Map từng mảng đã làm sang khái niệm interview. Dùng cho thành phần bạn thật sự đã đụng tới.</p></div>
+      <div className="scroll-x"><table className="w-full min-w-[640px] text-sm">
+        <thead><tr className="text-left text-[11px] uppercase tracking-wider text-slate-500"><th className="px-4 py-2 font-semibold">Bạn đã làm</th><th className="px-4 py-2 font-semibold">Khái niệm system design</th><th className="px-4 py-2 font-semibold">Cách biến thành lợi thế</th></tr></thead>
+        <tbody>${ADVANTAGE.map(r => html`<tr key=${r.from} className="border-t border-slate-800/80 align-top"><td className="whitespace-nowrap px-4 py-2.5 font-medium text-indigo-300">${r.from}</td><td className="px-4 py-2.5 text-slate-300">${r.concept}</td><td className="px-4 py-2.5 text-slate-400">${r.use}</td></tr>`)}</tbody>
+      </table></div>
+    </section>
+
+    <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <div className=${panel + ' p-4 lg:col-span-2 flex flex-col gap-3'}>
+        <h2 className="text-sm font-semibold text-slate-100">Khoảng trống cần dồn sức</h2>
+        <ul className="flex flex-col gap-2">${GAPS.map((g, i) => html`<li key=${i}><button onClick=${() => g.page ? go(g.page) : go('roadmap', { week: g.week, phase: phaseOf(g.week).id })} className="flex w-full items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-amber-500/40">
+          <${Icon} n="alert" className="mt-0.5 text-amber-400" /><span className="min-w-0 flex-1 text-sm text-slate-300">${g.text}</span><span className="tnum shrink-0 text-xs text-slate-500">${g.page ? 'Cheat sheet' : 'Tuần ' + g.week}</span></button></li>`)}</ul>
+        <div className="mt-1 border-t border-slate-800 pt-3"><${Eyebrow} className="mb-2">3 nguyên tắc<//>
+          <ol className="flex flex-col gap-2">${PRINCIPLES.map((p, i) => html`<li key=${i} className="flex gap-3 text-sm text-slate-300"><span className="tnum mt-0.5 text-xs text-indigo-400">${i + 1}</span><span>${p}</span></li>`)}</ol></div>
+      </div>
+      <div className=${panel + ' p-4 lg:col-span-3 flex flex-col gap-3 min-w-0'}>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-100">Câu chuyện 2 phút</h2>
+          <span className=${'tnum text-xs ' + (secs > 150 ? 'text-amber-400' : 'text-slate-500')}>${words} từ · đọc to ≈ ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span></div>
+        <p className="text-xs text-slate-500">Hệ thống integration lớn nhất bạn từng làm, có số liệu: message/giây, số service, SLA, sự cố lớn nhất và bạn xử lý thế nào. Nhẩm trước mỗi buổi phỏng vấn; khoảng 260 từ là vừa 2 phút.</p>
+        <textarea id="story" rows="9" className=${inputCls + ' resize-y leading-relaxed'} value=${S.story} onChange=${e => set(['story'], e.target.value)}
+          placeholder="Ví dụ: Mình vận hành nền tảng tích hợp cho 40 hệ thống nội bộ trên IBM MQ và Event Streams, cao điểm khoảng … message/giây, SLA 99,9%…"></textarea>
+      </div>
+    </section>
+
+    <section className=${panel + ' overflow-hidden'}>
+      <div className="border-b border-slate-800 px-4 py-3"><h2 className="text-sm font-semibold text-slate-100">Signals Mid-level vs Senior</h2></div>
+      <div className="scroll-x"><table className="w-full min-w-[560px] text-sm">
+        <thead><tr className="text-left text-[11px] uppercase tracking-wider text-slate-500"><th className="px-4 py-2 font-semibold">Tiêu chí</th><th className="px-4 py-2 font-semibold">Mid-level</th><th className="px-4 py-2 font-semibold text-emerald-400">Senior</th></tr></thead>
+        <tbody>${SIGNALS.map(r => html`<tr key=${r[0]} className="border-t border-slate-800/80 align-top"><td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-200">${r[0]}</td><td className="px-4 py-2.5 text-slate-400">${r[1]}</td><td className="px-4 py-2.5 text-slate-200">${r[2]}</td></tr>`)}</tbody>
+      </table></div>
+    </section>
+  </div>`;
+}
+
+/* =========================================================
+   2. ROADMAP
+   ========================================================= */
+function SectionBlock({ icon, title, count, children, tone = 'text-slate-400' }) {
+  return html`<section className=${panel + ' p-4'}>
+    <div className="mb-2 flex items-center gap-2"><${Icon} n=${icon} className=${tone} /><h3 className="text-sm font-semibold text-slate-100">${title}</h3>${count ? html`<span className="tnum ml-auto text-xs text-slate-500">${count}</span>` : null}</div>
+    ${children}</section>`;
+}
+function QuizItem({ id, q, a, value, onChange, i }) {
+  const [open, setOpen] = useState(false);
+  return html`<div className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+    <div className="flex gap-3"><span className="tnum mt-0.5 text-xs font-semibold text-amber-400">Q${i + 1}</span><p className="text-sm font-medium text-slate-100"><${Inline} text=${q} /></p></div>
+    <textarea id=${id} rows="3" className=${inputCls + ' resize-y'} placeholder="Gõ câu trả lời của bạn trước, không nhìn tài liệu…" value=${value || ''} onChange=${e => onChange(e.target.value)}></textarea>
+    <div><button className=${B('quiet') + ' text-xs'} onClick=${() => setOpen(o => !o)} aria-expanded=${open}><${Icon} n="bulb" s=${14} className="text-amber-400" />${open ? 'Ẩn gợi ý' : 'Xem gợi ý chuẩn Senior'}</button></div>
+    ${open ? html`<div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-relaxed text-amber-100/90"><${Inline} text=${a} /></div>` : null}
+  </div>`;
+}
+function Roadmap({ S, set, stats }) {
+  const phaseF = S.ui.phase || 0;
+  const weeksShown = WM.filter(w => !phaseF || w.phase.id === phaseF);
+  const cur = WM.find(w => w.n === S.ui.week) || WM[0];
+  const k = KIND[cur.phase.kind];
+  const ws = stats.week[cur.n];
+  const toggle = (id, v) => set(['checks', id], v);
+  const L = S.links[cur.n] || {};
+  const setWeek = n => set(['ui', 'week'], n);
+  const chip = (active) => `rounded-full border px-3 py-1 text-xs font-medium transition-colors ${active ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'}`;
+
+  return html`<div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
+      <div className="noscrollbar scroll-x -mx-1 flex gap-2 px-1 pb-1">
+        <button className=${chip(!phaseF) + ' shrink-0'} onClick=${() => set(['ui', 'phase'], 0)}>Tất cả phase</button>
+        ${PHASES.map(p => html`<button key=${p.id} className=${chip(phaseF === p.id) + ' shrink-0'} onClick=${() => { set(['ui', 'phase'], p.id); if (!p.weeks.includes(S.ui.week)) setWeek(p.weeks[0]); }}>Phase ${p.id} · ${p.name}</button>`)}
+      </div>
+      <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
+        ${weeksShown.map(w => { const s = stats.week[w.n]; const kk = KIND[w.phase.kind]; const active = w.n === cur.n; const full = s.total && s.done === s.total;
+          return html`<button key=${w.n} onClick=${() => setWeek(w.n)} aria-current=${active ? 'true' : null} title=${'Tuần ' + w.n + ' · ' + w.title}
+            className=${`flex flex-col items-center gap-1 rounded-md border px-1 py-2 transition-colors ${active ? 'border-indigo-400 bg-indigo-500/15' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}>
+            <span className=${'tnum text-sm font-semibold ' + (active ? 'text-slate-50' : 'text-slate-300')}>${w.n}</span>
+            <span className="h-1 w-full overflow-hidden rounded-full bg-slate-800"><span className=${'block h-1 ' + (full ? 'bg-emerald-400' : kk.bar)} style=${{ width: (s.total ? s.done / s.total * 100 : 0) + '%' }}></span></span>
+          </button>`; })}
+      </div>
+    </div>
+
+    <header className=${'rounded-xl border p-4 sm:p-5 ' + k.border + ' ' + k.soft}>
+      <div className="flex flex-wrap items-center gap-2 text-xs"><span className=${'font-semibold ' + k.text}>Phase ${cur.phase.id} · ${cur.phase.name}</span><span className="text-slate-600">/</span><span className="text-slate-400">${cur.tag}</span><span className=${'ml-auto rounded-full border px-2 py-0.5 text-[11px] ' + k.border + ' ' + k.text}>${k.label}</span></div>
+      <h1 className="mt-2 text-xl font-semibold text-slate-50 sm:text-2xl"><span className="tnum text-slate-500">Tuần ${cur.n} · </span>${cur.title}</h1>
+      <p className="prose-line mt-1 text-sm text-slate-400">${cur.phase.goal}</p>
+      <div className="mt-4 flex items-center gap-3"><div className="flex-1"><${Bar} value=${ws.total ? ws.done / ws.total : 0} cls=${k.bar} h="h-2" /></div><span className="tnum text-sm text-slate-300">${ws.done}/${ws.total}</span></div>
+    </header>
+
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="flex flex-col gap-4 min-w-0">
+        <${SectionBlock} icon="brain" title="Học · khái niệm" tone="text-indigo-400" count=${cur.learn.reduce((a, g) => a + g.items.filter(i => S.checks[i.id]).length, 0) + '/' + cur.learn.reduce((a, g) => a + g.items.length, 0)}>
+          <div className="flex flex-col gap-3">${cur.learn.map(g => html`<div key=${g.label}>
+            ${cur.learn.length > 1 || g.label !== 'Khái niệm' ? html`<${Eyebrow} className="mb-1 px-2 text-indigo-300/80">${g.label}<//>` : null}
+            ${g.items.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)}
+          </div>`)}</div>
+        <//>
+        <${SectionBlock} icon="book" title="Đọc · tài liệu" tone="text-sky-400" count=${cur.read.filter(i => S.checks[i.id]).length + '/' + cur.read.length}>
+          ${cur.read.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)}
+        <//>
+      </div>
+      <div className="flex flex-col gap-4 min-w-0">
+        <${SectionBlock} icon="flask" title="Làm · hands-on lab" tone="text-emerald-400" count=${cur.lab.length ? cur.lab.filter(i => S.checks[i.id]).length + '/' + cur.lab.length : ''}>
+          ${cur.lab.length ? cur.lab.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)
+            : html`<p className="px-2 text-sm text-slate-500">Tuần này không có lab riêng. Dồn thời gian Thứ 7 cho bài thiết kế bấm giờ 45 phút trong Phòng luyện đề.</p>`}
+          ${cur.note ? html`<p className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">${cur.note}</p>` : null}
+        <//>
+        ${cur.widget === 'concurrency' ? html`<${ConcurrencyBench} S=${S} set=${set} />` : null}
+        ${cur.widget === 'grpc' ? html`<${GrpcBench} S=${S} set=${set} />` : null}
+        ${cur.widget === 'hikari' ? html`<${HikariCalc} S=${S} set=${set} />` : null}
+        <${SectionBlock} icon="target" title="Đầu ra · deliverables" tone="text-amber-400" count=${cur.out.filter(i => S.checks[i.id]).length + '/' + cur.out.length}>
+          ${cur.out.map(it => html`<${CheckRow} key=${it.id} id=${it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${toggle} />`)}
+          <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-800 pt-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor=${'repo-' + cur.n}>GitHub repo
+              <input id=${'repo-' + cur.n} className=${inputCls} placeholder="https://github.com/…" value=${L.repo || ''} onChange=${e => set(['links', cur.n, 'repo'], e.target.value)} /></label>
+            <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor=${'draw-' + cur.n}>Excalidraw / sơ đồ
+              <input id=${'draw-' + cur.n} className=${inputCls} placeholder="https://excalidraw.com/#…" value=${L.draw || ''} onChange=${e => set(['links', cur.n, 'draw'], e.target.value)} /></label>
+            <label className="flex flex-col gap-1 text-xs text-slate-400 sm:col-span-2" htmlFor=${'note-' + cur.n}>Ghi chú kết quả tuần
+              <textarea id=${'note-' + cur.n} rows="3" className=${inputCls + ' resize-y'} placeholder="Số đo, điều rút ra, việc dời sang tuần sau…" value=${L.note || ''} onChange=${e => set(['links', cur.n, 'note'], e.target.value)}></textarea></label>
+            ${[L.repo, L.draw].filter(u => /^https?:\/\//.test(u || '')).length ? html`<div className="flex flex-wrap gap-2 sm:col-span-2">${[L.repo, L.draw].filter(u => /^https?:\/\//.test(u || '')).map(u => html`<a key=${u} href=${u} target="_blank" rel="noopener" className="inline-flex max-w-full items-center gap-1.5 truncate rounded-md border border-slate-800 px-2 py-1 text-xs text-indigo-300 hover:border-indigo-500"><${Icon} n="link" s=${12} /><span className="truncate">${u}</span></a>`)}</div>` : null}
+          </div>
+        <//>
+      </div>
+    </div>
+
+    ${cur.quiz.length ? html`<${SectionBlock} icon="mic" title="Tự kiểm tra · active recall" tone="text-amber-400" count=${cur.quiz.filter((_, i) => (S.quiz['w' + cur.n + '-q' + i] || '').trim()).length + '/' + cur.quiz.length + ' đã trả lời'}>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">${cur.quiz.map((q, i) => html`<${QuizItem} key=${cur.n + '-' + i} i=${i} id=${'quiz-w' + cur.n + '-' + i} q=${q.q} a=${q.a} value=${S.quiz['w' + cur.n + '-q' + i]} onChange=${v => set(['quiz', 'w' + cur.n + '-q' + i], v)} />`)}</div>
+    <//>` : null}
+
+    <div className="flex items-center justify-between gap-3">
+      <button className=${B('ghost')} disabled=${cur.n === 1} onClick=${() => { setWeek(cur.n - 1); if (phaseF && phaseOf(cur.n - 1).id !== phaseF) set(['ui', 'phase'], 0); }}><${Icon} n="left" />Tuần ${Math.max(1, cur.n - 1)}</button>
+      <button className=${B('ghost')} disabled=${cur.n === 15} onClick=${() => { setWeek(cur.n + 1); if (phaseF && phaseOf(cur.n + 1).id !== phaseF) set(['ui', 'phase'], 0); }}>Tuần ${Math.min(15, cur.n + 1)}<${Icon} n="right" /></button>
+    </div>
+  </div>`;
+}
+
+/* ---- Widgets ---- */
+function ConcurrencyBench({ S, set }) {
+  const rows = ['Không lock', 'SELECT FOR UPDATE', '@Version + retry'];
+  const data = S.bench.w4 || [{}, {}, {}];
+  const tps = data.map(d => Number(d.tps) || 0); const maxT = Math.max(1, ...tps);
+  return html`<section className=${panel + ' p-4'}>
+    <div className="mb-1 flex items-center gap-2"><${Icon} n="db" className="text-indigo-400" /><h3 className="text-sm font-semibold text-slate-100">Concurrency benchmark log</h3></div>
+    <p className="mb-3 text-xs text-slate-500">100 thread cùng trừ tiền một tài khoản. Kỳ vọng: "Không lock" cho số dư sai vì lost update.</p>
+    <div className="scroll-x"><table className="w-full min-w-[460px] text-sm">
+      <thead><tr className="text-left text-[11px] uppercase tracking-wider text-slate-500"><th className="py-1.5 pr-3 font-semibold">Cách</th><th className="py-1.5 pr-3 font-semibold">Số dư cuối</th><th className="py-1.5 pr-3 font-semibold">TPS đo được</th><th className="py-1.5 font-semibold">So sánh</th></tr></thead>
+      <tbody>${rows.map((r, i) => html`<tr key=${r} className="border-t border-slate-800/80">
+        <td className="py-2 pr-3"><code className="inl">${r}</code></td>
+        <td className="py-2 pr-3"><select id=${'w4-bal-' + i} className=${inputCls + ' py-1.5'} value=${data[i] && data[i].balance || ''} onChange=${e => set(['bench', 'w4', i, 'balance'], e.target.value)}>
+          <option value="">—</option><option value="ok">Đúng</option><option value="bad">Sai</option></select></td>
+        <td className="py-2 pr-3"><input id=${'w4-tps-' + i} type="number" min="0" inputMode="decimal" className=${inputCls + ' tnum py-1.5'} placeholder="TPS" value=${data[i] && data[i].tps || ''} onChange=${e => set(['bench', 'w4', i, 'tps'], e.target.value)} /></td>
+        <td className="w-28 py-2"><div className="h-2 w-full rounded-full bg-slate-800"><div className=${'h-2 rounded-full ' + ((data[i] && data[i].balance) === 'bad' ? 'bg-rose-500' : 'bg-emerald-500')} style=${{ width: (tps[i] / maxT * 100) + '%' }}></div></div></td>
+      </tr>`)}</tbody></table></div>
+  </section>`;
+}
+function GrpcBench({ S, set }) {
+  const d = S.bench.w8 || { rest: {}, grpc: {} };
+  const cols = [['size', 'Payload (bytes)'], ['p50', 'p50 (ms)'], ['p99', 'p99 (ms)']];
+  const ratio = k => { const a = Number(d.rest && d.rest[k]), b = Number(d.grpc && d.grpc[k]); return a > 0 && b > 0 ? a / b : null; };
+  return html`<section className=${panel + ' p-4'}>
+    <div className="mb-1 flex items-center gap-2"><${Icon} n="timer" className="text-indigo-400" /><h3 className="text-sm font-semibold text-slate-100">REST vs gRPC benchmark log</h3></div>
+    <p className="mb-3 text-xs text-slate-500">Cùng một API, cùng payload. Ghi kết quả đo được để có số liệu thật khi nói trong phỏng vấn.</p>
+    <div className="scroll-x"><table className="w-full min-w-[420px] text-sm">
+      <thead><tr className="text-left text-[11px] uppercase tracking-wider text-slate-500"><th className="py-1.5 pr-3 font-semibold"></th>${cols.map(c => html`<th key=${c[0]} className="py-1.5 pr-3 font-semibold">${c[1]}</th>`)}</tr></thead>
+      <tbody>${[['rest', 'REST / JSON'], ['grpc', 'gRPC / Protobuf']].map(([k, label]) => html`<tr key=${k} className="border-t border-slate-800/80"><td className="whitespace-nowrap py-2 pr-3 text-slate-300">${label}</td>
+        ${cols.map(c => html`<td key=${c[0]} className="py-2 pr-3"><input id=${'w8-' + k + '-' + c[0]} type="number" min="0" inputMode="decimal" className=${inputCls + ' tnum py-1.5'} value=${(d[k] && d[k][c[0]]) || ''} onChange=${e => set(['bench', 'w8', k, c[0]], e.target.value)} /></td>`)}</tr>`)}
+      <tr className="border-t border-slate-800/80"><td className="py-2 pr-3 text-xs text-slate-500">REST ÷ gRPC</td>${cols.map(c => { const r = ratio(c[0]); return html`<td key=${c[0]} className=${'tnum py-2 pr-3 text-sm ' + (r == null ? 'text-slate-600' : r >= 1 ? 'text-emerald-300' : 'text-amber-300')}>${r == null ? '—' : '×' + fmt(r, 2)}</td>`; })}</tr>
+      </tbody></table></div>
+  </section>`;
+}
+function HikariCalc({ S, set }) {
+  const h = S.hikari;
+  const n = k => Math.max(0, Number(h[k]) || 0);
+  const pods = n('pods'), pool = n('pool'), maxC = n('maxConn'), cores = n('cores'), sp = n('spindle');
+  const total = pods * pool;
+  const reserved = 3; // superuser_reserved_connections mặc định
+  const usable = Math.max(0, maxC - reserved);
+  const ideal = cores * 2 + sp;
+  const maxPerPod = pods ? Math.floor(usable / pods) : 0;
+  const idealPerPod = pods ? Math.floor(ideal / pods) : 0;
+  const ratio = usable ? total / usable : Infinity;
+  const level = total > usable ? 'bad' : ratio > 0.8 ? 'warn' : 'ok';
+  const tone = { bad: 'border-rose-500/50 bg-rose-500/10 text-rose-200', warn: 'border-amber-500/50 bg-amber-500/10 text-amber-200', ok: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200' }[level];
+  const field = (k, label, hint) => html`<label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor=${'hk-' + k}>${label}
+    <input id=${'hk-' + k} type="number" min="0" inputMode="numeric" className=${inputCls + ' tnum'} value=${h[k]} onChange=${e => set(['hikari', k], e.target.value)} />
+    ${hint ? html`<span className="text-[11px] text-slate-600">${hint}</span>` : null}</label>`;
+  return html`<section className=${panel + ' p-4'}>
+    <div className="mb-1 flex items-center gap-2"><${Icon} n="calc" className="text-indigo-400" /><h3 className="text-sm font-semibold text-slate-100">HikariCP & Postgres connection calculator</h3></div>
+    <p className="mb-3 text-xs text-slate-500">Mặc định là ví dụ trong plan: 50 pod × pool 20 vào một Postgres để <code className="inl">max_connections = 100</code>.</p>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      ${field('pods', 'Số pod')}${field('pool', 'maxPoolSize mỗi pod')}${field('maxConn', 'Postgres max_connections')}
+      ${field('cores', 'Số core của DB server', 'core_count')}${field('spindle', 'effective_spindle_count', 'SSD thường để 1')}
+    </div>
+    <div className=${'mt-3 rounded-lg border p-3 ' + tone}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="tnum text-2xl font-semibold">${fmt(total, 0)}</span><span className="text-sm">kết nối = ${fmt(pods, 0)} pod × ${fmt(pool, 0)}</span>
+        <span className="tnum ml-auto text-sm">dùng được ${fmt(usable, 0)} (${fmt(maxC, 0)} − ${reserved} dành cho superuser)</span></div>
+      <p className="mt-1 text-sm">${level === 'bad' ? `Vượt ${fmt(total - usable, 0)} kết nối: pod mới sẽ lỗi "too many clients" khi scale.` : level === 'warn' ? 'Sát ngưỡng (trên 80%): một đợt rolling deploy tạo pod mới song song là vượt.' : 'An toàn, còn dư cho rolling deploy và công cụ admin.'}</p>
+    </div>
+    <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><${Eyebrow}>Pool tối đa mỗi pod<//><div className="tnum mt-1 text-lg text-slate-100">${fmt(maxPerPod, 0)}</div><div className="text-xs text-slate-500">⌊${fmt(usable, 0)} ÷ ${fmt(pods, 0)}⌋ để không vượt max_connections</div></div>
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><${Eyebrow}>Tổng lý tưởng cho DB<//><div className="tnum mt-1 text-lg text-slate-100">${fmt(ideal, 0)}</div><div className="text-xs text-slate-500">(core_count × 2) + spindle = (${cores} × 2) + ${sp}</div></div>
+    </div>
+    <p className="mt-3 text-xs leading-relaxed text-slate-400">Công thức của HikariCP là số kết nối <em>tổng</em> mà DB xử lý tốt, không phải cho từng pod. Chia cho ${fmt(pods, 0)} pod thì mỗi pod được ${fmt(idealPerPod, 0)}. ${idealPerPod < 2 ? 'Quá ít: đặt PgBouncer (transaction pooling) giữa app và Postgres, để mỗi pod giữ pool nhỏ tới PgBouncer còn PgBouncer giữ khoảng ' + fmt(ideal, 0) + ' kết nối thật tới DB.' : 'Đặt maxPoolSize mỗi pod quanh con số này và theo dõi thời gian chờ lấy connection.'}</p>
+  </section>`;
+}
+
+/* =========================================================
+   3. MOCK STUDIO
+   ========================================================= */
+function MockStudio({ S, set }) {
+  const m = S.mock;
+  const dur = m.duration === 60 ? 60 : 45;
+  const mins = STEP_MIN[dur];
+  const bounds = mins.reduce((acc, x) => { acc.push((acc.length ? acc[acc.length - 1] : 0) + x * 60); return acc; }, []);
+  const total = bounds[bounds.length - 1];
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
+  const startRef = useRef(0);
+  const [openId, setOpenId] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [savedMsg, setSavedMsg] = useState('');
+
+  useEffect(() => {
+    if (!running) return;
+    startRef.current = Date.now() - elapsed * 1000;
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 250);
+    return () => clearInterval(t);
+  }, [running]);
+
+  const stepIdx = Math.min(bounds.findIndex(b => elapsed < b) === -1 ? 6 : bounds.findIndex(b => elapsed < b), 6);
+  const stepStart = stepIdx ? bounds[stepIdx - 1] : 0;
+  const stepLeft = bounds[stepIdx] - elapsed;
+  const over = elapsed >= total;
+  const mmss = s => { const a = Math.abs(s); return (s < 0 ? '−' : '') + String(Math.floor(a / 60)).padStart(2, '0') + ':' + String(a % 60).padStart(2, '0'); };
+  const jump = i => { const at = i ? bounds[i - 1] : 0; setElapsed(at); startRef.current = Date.now() - at * 1000; };
+  const score = m.scores.reduce((a, b) => a + (b || 0), 0);
+  const canSave = m.problem && (m.sections.some(s => s.trim()) || score > 0);
+
+  const save = () => {
+    const entry = { id: uid(), date: new Date().toISOString(), problem: m.problem, duration: dur, elapsed, scores: m.scores.slice(), sections: m.sections.slice() };
+    set(['history'], h => [entry, ...(h || [])]);
+    set(['mock'], Object.assign({}, m, { sections: ['', '', '', '', '', '', ''], scores: [0, 0, 0, 0, 0] }));
+    setRunning(false); setElapsed(0);
+    setSavedMsg('Đã lưu bài "' + m.problem + '" vào lịch sử.');
+    setTimeout(() => setSavedMsg(''), 3500);
+  };
+
+  return html`<div className="flex flex-col gap-5">
+    <section className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold text-slate-50">Phòng luyện đề ${dur} phút</h1>
+      <p className="prose-line text-sm text-slate-400">Bấm giờ theo khung 7 bước, nói to, gõ design doc 1 trang ngay bên cạnh. Xong thì tự chấm theo rubric và lưu lại.</p>
+    </section>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+      <div className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
+        <section className=${panel + ' p-4'}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex rounded-md border border-slate-800 p-0.5" role="group" aria-label="Thời lượng">
+              ${[45, 60].map(d => html`<button key=${d} onClick=${() => { set(['mock', 'duration'], d); setRunning(false); setElapsed(0); }} className=${`tnum rounded px-3 py-1 text-xs font-medium ${dur === d ? 'bg-slate-700 text-slate-50' : 'text-slate-400 hover:text-slate-200'}`}>${d} phút</button>`)}
+            </div>
+            <span className=${'tnum text-xs ' + (over ? 'text-rose-400' : 'text-slate-500')}>${over ? 'Hết giờ' : 'Bước ' + (stepIdx + 1) + '/7'}</span>
+          </div>
+          <div className="mt-4 text-center">
+            <div className=${'tnum text-6xl font-semibold tracking-tight ' + (over ? 'text-rose-400' : 'text-slate-50')}>${mmss(over ? total - elapsed : total - elapsed)}</div>
+            <div className="tnum mt-1 text-xs text-slate-500">đã chạy ${mmss(elapsed)} · bước này còn ${over ? '00:00' : mmss(stepLeft)}</div>
+          </div>
+          <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-800">${mins.map((x, i) => { const st = i ? bounds[i - 1] : 0; const f = Math.max(0, Math.min(1, (elapsed - st) / (x * 60))); return html`<div key=${i} className="relative h-2 border-r border-slate-950 last:border-r-0" style=${{ width: (x / dur * 100) + '%' }}><div className=${'h-2 ' + (i === stepIdx && !over ? 'bg-indigo-400' : 'bg-indigo-500/60')} style=${{ width: f * 100 + '%' }}></div></div>`; })}</div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <button className=${B(running ? 'warn' : 'primary')} onClick=${() => setRunning(r => !r)}><${Icon} n=${running ? 'pause' : 'play'} />${running ? 'Dừng' : elapsed ? 'Tiếp' : 'Bắt đầu'}</button>
+            <button className=${B('ghost')} disabled=${stepIdx >= 6} onClick=${() => jump(stepIdx + 1)}><${Icon} n="skip" />Bước sau</button>
+            <button className=${B('ghost')} onClick=${() => { setRunning(false); setElapsed(0); }}><${Icon} n="reset" />Đặt lại</button>
+          </div>
+        </section>
+        <section className=${panel + ' p-2'}>
+          <ol className="flex flex-col">${STEP_BASE.map((s, i) => { const active = i === stepIdx && (running || elapsed > 0) && !over; const done = elapsed >= bounds[i];
+            return html`<li key=${i}><button onClick=${() => jump(i)} className=${`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${active ? 'bg-indigo-500/15 ring-1 ring-indigo-500/50' : 'hover:bg-slate-800/60'}`}>
+              <span className=${`tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${done ? 'bg-emerald-500/20 text-emerald-300' : active ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'}`}>${done ? html`<${Icon} n="check" s=${12} />` : i + 1}</span>
+              <span className="min-w-0 flex-1"><span className=${'block text-sm ' + (active ? 'font-semibold text-slate-50' : 'text-slate-300')}>${s.name}</span>
+                ${active ? html`<span className="mt-1 block rounded-md border border-indigo-500/30 bg-slate-950/70 p-2 text-xs italic leading-relaxed text-indigo-100">"${s.lead}"</span>` : null}</span>
+              <span className="tnum shrink-0 text-xs text-slate-500">${mins[i]}′</span></button></li>`; })}</ol>
+        </section>
+      </div>
+
+      <div className="flex flex-col gap-4 min-w-0">
+        <section className=${panel + ' p-4 flex flex-col gap-3'}>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-xs text-slate-400" htmlFor="mock-problem">Bài toán
+              <select id="mock-problem" className=${inputCls} value=${m.problem} onChange=${e => set(['mock', 'problem'], e.target.value)}>
+                <option value="">Chọn bài toán…</option>${PROBLEMS.map(p => html`<option key=${p} value=${p}>${p}</option>`)}</select></label>
+            <div className="tnum text-xs text-slate-500">1-page design doc · ${m.sections.filter(s => s.trim()).length}/7 mục</div>
+          </div>
+          ${STEP_BASE.map((s, i) => html`<label key=${i} htmlFor=${'mock-sec-' + i} className=${`flex flex-col gap-1 rounded-lg border p-3 ${i === stepIdx && (running || elapsed > 0) && !over ? 'border-indigo-500/60 bg-indigo-500/5' : 'border-slate-800'}`}>
+            <span className="flex items-center gap-2 text-xs font-semibold text-slate-300"><span className="tnum text-indigo-400">${i + 1}</span>${s.name}<span className="tnum ml-auto font-normal text-slate-600">${mins[i]} phút</span></span>
+            <textarea id=${'mock-sec-' + i} rows=${i === 4 || i === 5 ? 5 : 3} className=${inputCls + ' resize-y border-transparent bg-slate-950/80'} placeholder=${s.ph} value=${m.sections[i]} onChange=${e => set(['mock', 'sections', i], e.target.value)}></textarea>
+          </label>`)}
+        </section>
+        <section className=${panel + ' p-4'}>
+          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold text-slate-100">Rubric tự chấm</h3><span className="tnum text-sm text-slate-300">${score}/20</span></div>
+          <div className="flex flex-col gap-2">${RUBRIC.map((r, i) => html`<div key=${r} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+            <span className="text-sm text-slate-300 sm:w-56 sm:shrink-0">${r}</span>
+            <div className="grid flex-1 grid-cols-4 gap-1" role="radiogroup" aria-label=${r}>${[1, 2, 3, 4].map(v => html`<button key=${v} role="radio" aria-checked=${m.scores[i] === v} onClick=${() => set(['mock', 'scores', i], m.scores[i] === v ? 0 : v)}
+              className=${`rounded-md border px-1 py-1.5 text-[11px] transition-colors ${m.scores[i] === v ? (v >= 3 ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-200' : 'border-amber-500/60 bg-amber-500/15 text-amber-200') : 'border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}><span className="tnum font-semibold">${v}</span> ${RUBRIC_LV[v - 1]}</button>`)}</div></div>`)}</div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button className=${B('ok')} disabled=${!canSave} onClick=${save}><${Icon} n="save" />Lưu vào lịch sử</button>
+            ${!m.problem ? html`<span className="text-xs text-slate-500">Chọn bài toán để lưu.</span>` : null}
+            ${savedMsg ? html`<span className="text-xs text-emerald-300" role="status">${savedMsg}</span>` : null}
+          </div>
+        </section>
+        <section className=${panel + ' overflow-hidden'}>
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3"><h3 className="text-sm font-semibold text-slate-100">Lịch sử bài đã giải</h3><span className="tnum text-xs text-slate-500">${S.history.length} bài</span></div>
+          ${S.history.length ? html`<ul className="divide-y divide-slate-800">${S.history.map(hh => { const sc = hh.scores.reduce((a, b) => a + (b || 0), 0); const open = openId === hh.id;
+            return html`<li key=${hh.id} className="px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <button className="min-w-0 flex-1 text-left text-sm font-medium text-slate-100 hover:text-indigo-300" onClick=${() => setOpenId(open ? null : hh.id)} aria-expanded=${open}>${hh.problem}</button>
+                <span className="tnum text-xs text-slate-500">${new Date(hh.date).toLocaleDateString('vi-VN')} · ${mmss(hh.elapsed || 0)} / ${hh.duration}′</span>
+                <span className=${'tnum rounded-full px-2 py-0.5 text-xs ' + (sc >= 15 ? 'bg-emerald-500/15 text-emerald-300' : sc >= 10 ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-800 text-slate-400')}>${sc}/20</span>
+                ${confirmDel === hh.id ? html`<span className="flex gap-1"><button className=${B('danger') + ' px-2 py-1 text-xs'} onClick=${() => { set(['history'], h => h.filter(x => x.id !== hh.id)); setConfirmDel(null); }}>Xoá</button><button className=${B('quiet') + ' text-xs'} onClick=${() => setConfirmDel(null)}>Huỷ</button></span>`
+                  : html`<button className=${B('quiet')} aria-label="Xoá bài" onClick=${() => setConfirmDel(hh.id)}><${Icon} n="trash" s=${14} /></button>`}
+              </div>
+              ${open ? html`<div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                ${STEP_BASE.map((s, i) => hh.sections[i] && hh.sections[i].trim() ? html`<div key=${i} className="rounded-md border border-slate-800 bg-slate-950/60 p-2"><div className="text-[11px] font-semibold text-slate-500">${i + 1}. ${s.name}</div><div className="mt-1 whitespace-pre-wrap text-sm text-slate-300">${hh.sections[i]}</div></div>` : null)}
+                <div className="flex flex-wrap gap-2 md:col-span-2">${RUBRIC.map((r, i) => html`<span key=${r} className="tnum rounded border border-slate-800 px-2 py-0.5 text-[11px] text-slate-400">${r}: ${hh.scores[i] || '—'}</span>`)}</div>
+              </div>` : null}
+            </li>`; })}</ul>` : html`<p className="px-4 py-6 text-sm text-slate-500">Chưa có bài nào. Bài đầu tiên nên là Rate Limiter ở tuần 5.</p>`}
+        </section>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   4. TRADE-OFF CARDS
+   ========================================================= */
+function getAllCards(S) {
+  const seed = SEED_CARDS.map(c => Object.assign({}, c, S.cardEdits[c.id] || {}, { seed: true }));
+  return [...seed, ...(S.cards || [])];
+}
+const abNames = title => { const p = String(title).split(/\s+vs\.?\s+/i); return [p[0] || 'A', p.slice(1).join(' / ') || 'B']; };
+function CardBody({ c }) {
+  const [an, bn] = abNames(c.title);
+  const row = (label, text, cls = 'text-slate-300') => html`<div><div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">${label}</div><div className=${'mt-0.5 text-sm leading-relaxed ' + cls}><${Inline} text=${text} /></div></div>`;
+  return html`<div className="flex flex-col gap-3">
+    ${row('Định nghĩa ngắn', c.def)}
+    ${row('Chọn ' + an + ' khi', c.a)}
+    ${row('Chọn ' + bn + ' khi', c.b)}
+    ${row('Hệ thống thực tế', c.real, 'text-slate-400')}
+    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3"><div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Câu chốt trong phòng phỏng vấn</div><div className="mt-1 text-sm italic leading-relaxed text-emerald-100">"${c.line}"</div></div>
+  </div>`;
+}
+function CardEditor({ card, onSave, onClose }) {
+  const [f, setF] = useState(Object.assign({ title: '', week: 7, def: '', a: '', b: '', real: '', line: '' }, card || {}));
+  const fld = (k, label, rows) => html`<label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor=${'ce-' + k}>${label}
+    ${rows ? html`<textarea id=${'ce-' + k} rows=${rows} className=${inputCls + ' resize-y'} value=${f[k]} onChange=${e => setF(Object.assign({}, f, { [k]: e.target.value }))}></textarea>`
+      : html`<input id=${'ce-' + k} className=${inputCls} value=${f[k]} onChange=${e => setF(Object.assign({}, f, { [k]: e.target.value }))} />`}</label>`;
+  return html`<${Modal} title=${card && card.id ? 'Sửa thẻ' : 'Thêm thẻ trade-off'} onClose=${onClose} wide=${true}>
+    <form className="flex flex-col gap-3" onSubmit=${e => { e.preventDefault(); if (f.title.trim()) onSave(f); }}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px]">${fld('title', 'Tiêu đề (dạng "A vs B")')}
+        <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="ce-week">Tuần<select id="ce-week" className=${inputCls} value=${f.week} onChange=${e => setF(Object.assign({}, f, { week: Number(e.target.value) }))}>${WEEKS.map(w => html`<option key=${w.n} value=${w.n}>Tuần ${w.n}</option>`)}</select></label></div>
+      ${fld('def', 'Định nghĩa ngắn', 2)}${fld('a', 'Chọn A khi nào (và mất gì)', 2)}${fld('b', 'Chọn B khi nào (và mất gì)', 2)}${fld('real', 'Hệ thống thực tế sử dụng', 2)}${fld('line', 'Một câu chốt ăn điểm', 2)}
+      <div className="flex justify-end gap-2 pt-1"><button type="button" className=${B('ghost')} onClick=${onClose}>Huỷ</button><button type="submit" className=${B('primary')} disabled=${!f.title.trim()}>Lưu thẻ</button></div>
+    </form><//>`;
+}
+function QuizMode({ deck, S, set, onClose }) {
+  const [i, setI] = useState(0);
+  const [left, setLeft] = useState(60);
+  const [flip, setFlip] = useState(false);
+  const [res, setRes] = useState({});
+  const c = deck[i];
+  useEffect(() => { if (flip || !c) return; if (left <= 0) { setFlip(true); return; } const t = setTimeout(() => setLeft(l => l - 1), 1000); return () => clearTimeout(t); }, [left, flip, i]);
+  const mark = st => { set(['cardStatus', c.id], st); setRes(r => Object.assign({}, r, { [c.id]: st })); setI(x => x + 1); setLeft(60); setFlip(false); };
+  if (!c) {
+    const k = Object.values(res).filter(v => v === 'known').length;
+    return html`<${Modal} title="Kết quả quiz 60 giây" onClose=${onClose}>
+      <div className="text-center"><div className="tnum text-5xl font-semibold text-slate-50">${k}<span className="text-2xl text-slate-500">/${deck.length}</span></div><p className="mt-2 text-sm text-slate-400">thẻ đã thuộc làu</p></div>
+      <ul className="mt-4 flex flex-col gap-1">${deck.map(d => html`<li key=${d.id} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm"><span className="text-slate-300">${d.title}</span><span className=${'text-xs ' + (res[d.id] === 'known' ? 'text-emerald-300' : 'text-amber-300')}>${res[d.id] === 'known' ? 'Đã thuộc' : 'Cần ôn'}</span></li>`)}</ul>
+      <div className="mt-4 flex justify-end"><button className=${B('primary')} onClick=${onClose}>Xong</button></div><//>`;
+  }
+  return html`<${Modal} title=${'Random 60s quiz · thẻ ' + (i + 1) + '/' + deck.length} onClose=${onClose} wide=${true}>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3"><div className="flex-1"><${Bar} value=${left / 60} cls=${left > 20 ? 'bg-indigo-500' : 'bg-rose-500'} h="h-2" /></div><span className=${'tnum w-12 text-right text-lg font-semibold ' + (left > 20 ? 'text-slate-100' : 'text-rose-300')}>${flip ? '—' : left + 's'}</span></div>
+      <div className="rounded-xl border border-slate-800 bg-slate-950 p-5 text-center">
+        <div className="tnum text-xs text-slate-500">Tuần ${c.week}</div>
+        <h3 className="mt-1 text-xl font-semibold text-slate-50 sm:text-2xl">${c.title}</h3>
+        ${!flip ? html`<p className="mt-3 text-sm text-slate-400">Nói to: định nghĩa, chọn bên nào khi nào, mất gì, ví dụ thật, và câu chốt.</p>` : null}
+      </div>
+      ${flip ? html`<${CardBody} c=${c} />
+        <div className="grid grid-cols-2 gap-2"><button className=${B('warn')} onClick=${() => mark('review')}>Cần ôn lại</button><button className=${B('ok')} onClick=${() => mark('known')}><${Icon} n="check" />Đã thuộc làu</button></div>`
+        : html`<button className=${B('primary') + ' py-3'} onClick=${() => setFlip(true)}>Lật thẻ xem đáp án</button>`}
+    </div><//>`;
+}
+function Cards({ S, set }) {
+  const [filter, setFilter] = useState('all');
+  const [q, setQ] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [quiz, setQuiz] = useState(null);
+  const [delId, setDelId] = useState(null);
+  const all = getAllCards(S);
+  const st = c => S.cardStatus[c.id] || 'new';
+  const counts = { known: all.filter(c => st(c) === 'known').length, review: all.filter(c => st(c) === 'review').length, new: all.filter(c => st(c) === 'new').length };
+  const shown = all.filter(c => (filter === 'all' || st(c) === filter) && (!q || (c.title + ' ' + c.def).toLowerCase().includes(q.toLowerCase())));
+  const startQuiz = () => {
+    const pool = all.slice().sort((a, b) => (st(a) === 'known') - (st(b) === 'known') || Math.random() - 0.5);
+    const pick = pool.slice(0, Math.min(10, pool.length)).sort(() => Math.random() - 0.5);
+    setQuiz(pick);
+  };
+  const saveCard = f => {
+    if (editing && editing.id && editing.seed) set(['cardEdits', editing.id], { title: f.title, week: f.week, def: f.def, a: f.a, b: f.b, real: f.real, line: f.line });
+    else if (editing && editing.id) set(['cards'], cs => cs.map(c => c.id === editing.id ? Object.assign({}, c, f) : c));
+    else set(['cards'], cs => [...(cs || []), Object.assign({}, f, { id: 'u' + uid() })]);
+    setEditing(null);
+  };
+  const pill = { known: 'bg-emerald-500/15 text-emerald-300', review: 'bg-amber-500/15 text-amber-300', new: 'bg-slate-800 text-slate-400' };
+  const pillLabel = { known: 'Đã thuộc', review: 'Cần ôn', new: 'Chưa học' };
+  const fchip = (k, label, n) => html`<button key=${k} onClick=${() => setFilter(k)} className=${`rounded-full border px-3 py-1 text-xs font-medium ${filter === k ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200' : 'border-slate-800 text-slate-400 hover:text-slate-200'}`}>${label} <span className="tnum text-slate-500">${n}</span></button>`;
+
+  return html`<div className="flex flex-col gap-5">
+    <section className="flex flex-wrap items-end justify-between gap-3">
+      <div><h1 className="text-2xl font-semibold text-slate-50">Kho thẻ trade-off</h1><p className="prose-line mt-1 text-sm text-slate-400">${all.length} thẻ theo mẫu 5 mục. Quiz bốc 10 thẻ, ưu tiên thẻ chưa thuộc; mỗi thẻ 60 giây nói to trước khi lật.</p></div>
+      <div className="flex gap-2"><button className=${B('ghost')} onClick=${() => setEditing({})}><${Icon} n="plus" />Thêm thẻ</button><button className=${B('primary')} onClick=${startQuiz}><${Icon} n="shuffle" />Random 60s quiz</button></div>
+    </section>
+    <div className="flex flex-wrap items-center gap-2">
+      ${fchip('all', 'Tất cả', all.length)}${fchip('new', 'Chưa học', counts.new)}${fchip('review', 'Cần ôn', counts.review)}${fchip('known', 'Đã thuộc', counts.known)}
+      <input id="card-search" type="search" className=${inputCls + ' ml-auto w-full sm:w-64'} placeholder="Tìm thẻ…" value=${q} onChange=${e => setQ(e.target.value)} aria-label="Tìm thẻ" />
+    </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      ${shown.map(c => html`<article key=${c.id} className=${panel + ' flex flex-col gap-4 p-4'}>
+        <header className="flex items-start gap-3"><div className="min-w-0 flex-1"><div className="tnum text-[11px] text-slate-500">Tuần ${c.week}${c.seed ? '' : ' · thẻ của bạn'}</div><h2 className="mt-0.5 text-base font-semibold text-slate-50">${c.title}</h2></div>
+          <span className=${'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ' + pill[st(c)]}>${pillLabel[st(c)]}</span></header>
+        <${CardBody} c=${c} />
+        <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
+          <button className=${B('quiet') + ' text-xs ' + (st(c) === 'known' ? 'text-emerald-300' : '')} onClick=${() => set(['cardStatus', c.id], st(c) === 'known' ? 'new' : 'known')}><${Icon} n="check" s=${14} />Đã thuộc</button>
+          <button className=${B('quiet') + ' text-xs ' + (st(c) === 'review' ? 'text-amber-300' : '')} onClick=${() => set(['cardStatus', c.id], st(c) === 'review' ? 'new' : 'review')}><${Icon} n="reset" s=${14} />Cần ôn</button>
+          <button className=${B('quiet') + ' ml-auto text-xs'} onClick=${() => setEditing(c)}><${Icon} n="pencil" s=${14} />Sửa</button>
+          ${c.seed && S.cardEdits[c.id] ? html`<button className=${B('quiet') + ' text-xs'} onClick=${() => { const e = Object.assign({}, S.cardEdits); delete e[c.id]; set(['cardEdits'], e); }}>Khôi phục gốc</button>` : null}
+          ${!c.seed ? (delId === c.id ? html`<button className=${B('danger') + ' px-2 py-1 text-xs'} onClick=${() => { set(['cards'], cs => cs.filter(x => x.id !== c.id)); setDelId(null); }}>Xác nhận xoá</button>` : html`<button className=${B('quiet') + ' text-xs'} onClick=${() => setDelId(c.id)}><${Icon} n="trash" s=${14} />Xoá</button>`) : null}
+        </footer>
+      </article>`)}
+    </div>
+    ${!shown.length ? html`<p className="text-sm text-slate-500">Không có thẻ nào khớp bộ lọc.</p>` : null}
+    ${editing ? html`<${CardEditor} card=${editing} onSave=${saveCard} onClose=${() => setEditing(null)} />` : null}
+    ${quiz ? html`<${QuizMode} deck=${quiz} S=${S} set=${set} onClose=${() => setQuiz(null)} />` : null}
+  </div>`;
+}
+
+/* =========================================================
+   5. CHEAT SHEET & CALCULATOR
+   ========================================================= */
+function Cheat({ S, set }) {
+  const c = S.calc;
+  const n = k => Math.max(0, Number(c[k]) || 0);
+  const users = n('dau') * 1e6;
+  const rQ = users * n('read') / 86400, wQ = users * n('write') / 86400;
+  const sum = rQ + wQ;
+  const bwR = rQ * n('size'), bwW = wQ * n('size');
+  const stor = users * n('write') * n('size') * 365 * n('years');
+  const field = (k, label, extra) => html`<label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor=${'calc-' + k}>${label}
+    ${extra || html`<input id=${'calc-' + k} type="number" min="0" step="any" inputMode="decimal" className=${inputCls + ' tnum'} value=${c[k]} onChange=${e => set(['calc', k], e.target.value)} />`}</label>`;
+  const out = (label, value, formula, accent) => html`<div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 min-w-0">
+    <${Eyebrow}>${label}<//><div className=${'tnum mt-1 text-xl font-semibold ' + (accent || 'text-slate-50')}>${value}</div><div className="tnum mt-1 break-words text-[11px] text-slate-500">${formula}</div></div>`;
+  let grp = '';
+  return html`<div className="flex flex-col gap-5">
+    <section><h1 className="text-2xl font-semibold text-slate-50">Cheat sheet & máy tính ước lượng</h1>
+      <p className="prose-line mt-1 text-sm text-slate-400">Mọi số là xấp xỉ, làm tròn theo lũy thừa của 10. Trong phỏng vấn, nói rõ giả định thay vì đọc một con số như chân lý.</p></section>
+
+    <section className=${panel + ' p-4 flex flex-col gap-4'}>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-100">QPS & storage calculator</h2>
+        <button className=${B('ghost') + ' text-xs'} onClick=${() => set(['calc'], { dau: 100, read: 10, write: 1, size: 500, years: 10 })}>Nạp ví dụ TinyURL</button></div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        ${field('dau', 'DAU (triệu người)')}${field('read', 'Request đọc / user / ngày')}${field('write', 'Request ghi / user / ngày')}${field('size', 'Kích thước 1 bản ghi (byte)')}
+        ${field('years', 'Số năm lưu trữ', html`<select id="calc-years" className=${inputCls + ' tnum'} value=${String(c.years)} onChange=${e => set(['calc', 'years'], Number(e.target.value))}>${[1, 3, 5, 10].map(y => html`<option key=${y} value=${y}>${y} năm</option>`)}</select>`)}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        ${out('Avg read QPS', fmt(rQ, 0), `${fmt(n('dau'), 2)}M × ${fmt(n('read'), 2)} ÷ 86.400`)}
+        ${out('Avg write QPS', fmt(wQ, 0), `${fmt(n('dau'), 2)}M × ${fmt(n('write'), 2)} ÷ 86.400`)}
+        ${out('Peak QPS ×2 / ×3', fmt(sum * 2, 0) + ' / ' + fmt(sum * 3, 0), `(${fmt(rQ, 0)} + ${fmt(wQ, 0)}) × 2 / × 3`, 'text-amber-300')}
+        ${out('Tổng storage', fmtBytes(stor), `${fmt(n('dau'), 2)}M × ${fmt(n('write'), 2)} × ${fmt(n('size'), 0)} B × 365 × ${n('years')}`, 'text-emerald-300')}
+        ${out('Băng thông đọc', fmtBytes(bwR) + '/s', `${fmt(rQ, 0)} QPS × ${fmt(n('size'), 0)} B`)}
+        ${out('Băng thông ghi', fmtBytes(bwW) + '/s', `${fmt(wQ, 0)} QPS × ${fmt(n('size'), 0)} B`)}
+        ${out('Read : write', wQ ? fmt(rQ / wQ, 1) + ' : 1' : '—', rQ / Math.max(wQ, 1e-9) >= 10 ? 'Read-heavy: cache, replica, CDN' : 'Ghi đáng kể: queue, batching, LSM', rQ / Math.max(wQ, 1e-9) >= 10 ? 'text-indigo-300' : 'text-amber-300')}
+        ${out('Bản ghi mới / ngày', fmt(users * n('write'), 0), 'DAU × ghi/user/ngày')}
+      </div>
+      <pre className="scroll-x rounded-md border border-slate-800 bg-slate-950 p-3 text-xs leading-relaxed text-slate-400"><code className="font-mono">QPS trung bình = (DAU × request mỗi user mỗi ngày) / 86.400\nQPS đỉnh ≈ 2–3 × QPS trung bình\nStorage = bản ghi mới mỗi ngày × kích thước × 365 × số năm   (chưa tính replication ×3)</code></pre>
+    </section>
+
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section className=${panel + ' overflow-hidden'}>
+        <div className="border-b border-slate-800 px-4 py-3"><h2 className="text-sm font-semibold text-slate-100">Các con số cần thuộc</h2></div>
+        <table className="w-full text-sm"><tbody>${CHEAT.map((r, i) => { const head = r[0] !== grp; grp = r[0]; return html`<tr key=${i} className=${'border-t border-slate-800/70 ' + (head ? 'border-slate-700' : '')}>
+          <td className="w-28 px-4 py-2 align-top text-[11px] font-semibold uppercase tracking-wider text-slate-500">${head ? r[0] : ''}</td><td className="py-2 pr-3 text-slate-300">${r[1]}</td><td className="tnum py-2 pr-4 text-right text-slate-100">${r[2]}</td></tr>`; })}</tbody></table>
+      </section>
+      <section className=${panel + ' p-4'}>
+        <h2 className="mb-3 text-sm font-semibold text-slate-100">Khung trả lời 7 bước · 45 phút</h2>
+        <ol className="flex flex-col gap-2">${STEP_BASE.map((s, i) => html`<li key=${i} className="flex gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+          <span className="tnum flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-xs font-semibold text-indigo-300">${i + 1}</span>
+          <div className="min-w-0 flex-1"><div className="flex items-baseline justify-between gap-2"><span className="text-sm font-medium text-slate-100">${s.name}</span><span className="tnum text-xs text-slate-500">${STEP_MIN[45][i]} phút</span></div><p className="mt-0.5 text-xs text-slate-400">${s.ph}</p></div></li>`)}</ol>
+      </section>
+    </div>
+
+    <section className=${panel + ' overflow-hidden'}>
+      <div className="border-b border-slate-800 px-4 py-3"><h2 className="text-sm font-semibold text-slate-100">Tài liệu tham khảo theo tuần</h2></div>
+      <div className="scroll-x"><table className="w-full min-w-[600px] text-sm">
+        <thead><tr className="text-left text-[11px] uppercase tracking-wider text-slate-500"><th className="px-4 py-2 font-semibold">Tài liệu</th><th className="px-4 py-2 font-semibold">Tuần</th><th className="px-4 py-2 font-semibold">Ghi chú</th></tr></thead>
+        <tbody>${RESOURCES.map(r => html`<tr key=${r.name} className="border-t border-slate-800/80 align-top"><td className="px-4 py-2.5">${r.url ? html`<a href=${r.url} target="_blank" rel="noopener" className="text-indigo-300 underline decoration-indigo-500/40 underline-offset-2 hover:text-indigo-200">${r.name}</a>` : html`<span className="text-slate-200">${r.name}</span>`}</td><td className="tnum whitespace-nowrap px-4 py-2.5 text-slate-400">${r.weeks}</td><td className="px-4 py-2.5 text-slate-400">${r.note}</td></tr>`)}</tbody>
+      </table></div>
+    </section>
+  </div>`;
+}
+
+/* =========================================================
+   6. CHECKLIST & GAP TRACKER
+   ========================================================= */
+function Checklist({ S, set, stats, go }) {
+  const blank = { text: '', week: '', topic: '', fix: '', status: 'urgent' };
+  const [f, setF] = useState(blank);
+  const [gf, setGf] = useState('all');
+  const [delId, setDelId] = useState(null);
+  const gaps = S.gaps || [];
+  const shown = gaps.filter(g => gf === 'all' || g.status === gf);
+  const add = e => { e.preventDefault(); if (!f.text.trim()) return; set(['gaps'], gs => [Object.assign({ id: uid(), date: todayStr() }, f), ...(gs || [])]); setF(blank); };
+  const upd = (k, v) => setF(Object.assign({}, f, { [k]: v }));
+  return html`<div className="flex flex-col gap-5">
+    <section><h1 className="text-2xl font-semibold text-slate-50">Checklist tiến độ & sổ tay lỗ hổng</h1>
+      <p className="prose-line mt-1 text-sm text-slate-400">Checklist dưới đây là các đầu ra bắt buộc của mỗi tuần, đồng bộ với mục Đầu ra trong Lộ trình.</p></section>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <section className=${panel + ' p-2'}>
+        ${WM.map(w => { const ws = stats.week[w.n]; const od = w.out.filter(i => S.checks[i.id]).length; const k = KIND[w.phase.kind];
+          return html`<div key=${w.n} className="border-b border-slate-800/80 px-2 py-3 last:border-b-0">
+            <div className="flex items-center gap-3">
+              <button onClick=${() => go('roadmap', { week: w.n, phase: 0 })} className="tnum flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-800 text-xs font-semibold text-slate-200 hover:border-indigo-500" title="Mở tuần">${w.n}</button>
+              <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium text-slate-100">${w.title}</div>
+                <div className="mt-1 flex items-center gap-2"><div className="flex-1"><${Bar} value=${ws.total ? ws.done / ws.total : 0} cls=${k.bar} h="h-1" /></div><span className="tnum text-[11px] text-slate-500">${ws.done}/${ws.total}</span></div></div>
+              <span className=${'tnum shrink-0 text-xs ' + (od === w.out.length ? 'text-emerald-300' : 'text-slate-500')}>${od}/${w.out.length} đầu ra</span>
+            </div>
+            <div className="mt-1 pl-8">${w.out.map(it => html`<${CheckRow} key=${it.id} id=${'cl-' + it.id} text=${it.text} checked=${S.checks[it.id]} onToggle=${(_, v) => set(['checks', it.id], v)} />`)}</div>
+          </div>`; })}
+      </section>
+      <div className="flex flex-col gap-4 min-w-0 xl:sticky xl:top-20 xl:self-start">
+        <section className=${panel + ' p-4'}>
+          <h2 className="mb-3 text-sm font-semibold text-slate-100">Ghi nhanh một lỗ hổng</h2>
+          <form className="flex flex-col gap-3" onSubmit=${add}>
+            <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="gap-text">Lỗ hổng phát hiện được
+              <textarea id="gap-text" rows="2" className=${inputCls + ' resize-y'} placeholder="Ví dụ: không giải thích được vì sao Redlock không an toàn khi có GC pause" value=${f.text} onChange=${e => upd('text', e.target.value)}></textarea></label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="gap-week">Thuộc tuần
+                <select id="gap-week" className=${inputCls} value=${f.week} onChange=${e => upd('week', e.target.value)}><option value="">Khác</option>${WEEKS.map(w => html`<option key=${w.n} value=${w.n}>Tuần ${w.n}</option>`)}</select></label>
+              <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="gap-topic">Chủ đề
+                <input id="gap-topic" className=${inputCls} placeholder="Distributed Lock" value=${f.topic} onChange=${e => upd('topic', e.target.value)} /></label>
+            </div>
+            <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="gap-fix">Cách khắc phục / câu trả lời chuẩn
+              <textarea id="gap-fix" rows="3" className=${inputCls + ' resize-y'} value=${f.fix} onChange=${e => upd('fix', e.target.value)}></textarea></label>
+            <div className="flex flex-wrap items-center gap-2">
+              <select id="gap-status" aria-label="Trạng thái" className=${inputCls + ' w-auto'} value=${f.status} onChange=${e => upd('status', e.target.value)}><option value="urgent">Cần ôn gấp</option><option value="done">Đã xử lý</option></select>
+              <button type="submit" className=${B('primary') + ' ml-auto'} disabled=${!f.text.trim()}><${Icon} n="plus" />Thêm vào sổ tay</button>
+            </div>
+          </form>
+        </section>
+        <section className=${panel + ' overflow-hidden'}>
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-4 py-3"><h2 className="text-sm font-semibold text-slate-100">Sổ tay lỗ hổng</h2>
+            <div className="ml-auto flex gap-1">${[['all', 'Tất cả', gaps.length], ['urgent', 'Cần ôn gấp', gaps.filter(g => g.status === 'urgent').length], ['done', 'Đã xử lý', gaps.filter(g => g.status === 'done').length]].map(([k, l, c]) => html`<button key=${k} onClick=${() => setGf(k)} className=${`rounded-full px-2.5 py-0.5 text-[11px] ${gf === k ? 'bg-slate-700 text-slate-50' : 'text-slate-400 hover:text-slate-200'}`}>${l} <span className="tnum">${c}</span></button>`)}</div></div>
+          ${shown.length ? html`<ul className="divide-y divide-slate-800">${shown.map(g => html`<li key=${g.id} className="flex flex-col gap-2 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <button onClick=${() => set(['gaps'], gs => gs.map(x => x.id === g.id ? Object.assign({}, x, { status: x.status === 'done' ? 'urgent' : 'done' }) : x))}
+                className=${'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ' + (g.status === 'done' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300')} title="Đổi trạng thái">${g.status === 'done' ? 'Đã xử lý' : 'Cần ôn gấp'}</button>
+              <p className=${'min-w-0 flex-1 text-sm ' + (g.status === 'done' ? 'text-slate-500' : 'text-slate-100')}>${g.text}</p>
+              ${delId === g.id ? html`<button className=${B('danger') + ' px-2 py-1 text-xs'} onClick=${() => { set(['gaps'], gs => gs.filter(x => x.id !== g.id)); setDelId(null); }}>Xoá</button>` : html`<button className=${B('quiet')} aria-label="Xoá lỗ hổng" onClick=${() => setDelId(g.id)}><${Icon} n="trash" s=${14} /></button>`}
+            </div>
+            ${g.fix ? html`<div className="ml-1 whitespace-pre-wrap rounded-md border-l-2 border-emerald-500/50 bg-slate-950/60 px-3 py-2 text-sm text-slate-300">${g.fix}</div>` : null}
+            <div className="tnum flex gap-3 text-[11px] text-slate-500">${g.week ? html`<button className="hover:text-indigo-300" onClick=${() => go('roadmap', { week: Number(g.week), phase: 0 })}>Tuần ${g.week}</button>` : html`<span>Khác</span>`}${g.topic ? html`<span>${g.topic}</span>` : null}<span>${g.date}</span></div>
+          </li>`)}</ul>` : html`<p className="px-4 py-6 text-sm text-slate-500">${gaps.length ? 'Không có mục nào ở trạng thái này.' : 'Chưa có lỗ hổng nào. Sau mỗi bài mock, ghi lại chỗ bạn bị bí.'}</p>`}
+        </section>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   DATA MODALS: EXPORT / IMPORT / RESET
+   ========================================================= */
+function ExportModal({ S, onClose }) {
+  const text = useMemo(() => JSON.stringify(Object.assign({}, S, { exportedAt: new Date().toISOString() }), null, 2), [S]);
+  const ref = useRef(null);
+  const [msg, setMsg] = useState('');
+  const name = `sd-progress-${todayStr()}.json`;
+  const copy = () => {
+    const sel = () => { if (ref.current) { ref.current.focus(); ref.current.select(); } setMsg('Đã chọn toàn bộ JSON, nhấn Ctrl/Cmd + C để sao chép.'); };
+    try { navigator.clipboard.writeText(text).then(() => setMsg('Đã sao chép JSON. Dán vào file ' + name + ' để lưu.'), sel); } catch (e) { sel(); }
+  };
+  const save = () => {
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMsg('Đã tạo file ' + name + '. Nếu trình duyệt không tải, hãy dùng nút Sao chép JSON.');
+    } catch (e) { copy(); }
+  };
+  return html`<${Modal} title="Export JSON" onClose=${onClose} wide=${true}>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-400">Tải file <code className="inl">${name}</code> để backup hoặc chuyển sang máy khác. Nếu trình duyệt chặn tải file, hãy sao chép JSON rồi dán vào file đó.</p>
+      <textarea id="export-json" ref=${ref} readOnly rows="12" className=${inputCls + ' tnum text-xs'} value=${text}></textarea>
+      <div className="flex flex-wrap items-center gap-3"><button className=${B('primary')} onClick=${save}><${Icon} n="download" />Tải file JSON</button><button className=${B('ghost')} onClick=${copy}><${Icon} n="copy" />Sao chép JSON</button><span className="tnum text-xs text-slate-500">${fmtBytes(new Blob([text]).size)}</span>${msg ? html`<span className="text-xs text-emerald-300" role="status">${msg}</span>` : null}</div>
+    </div><//>`;
+}
+function ImportModal({ onImport, onClose }) {
+  const [text, setText] = useState('');
+  const [err, setErr] = useState('');
+  const onFile = e => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const r = new FileReader(); r.onload = () => { setText(String(r.result || '')); setErr(''); }; r.onerror = () => setErr('Không đọc được file. Thử chọn lại hoặc dán nội dung JSON.'); r.readAsText(file);
+  };
+  const go = () => {
+    try { const obj = JSON.parse(text); if (!obj || typeof obj !== 'object' || !obj.checks) throw new Error('shape'); onImport(obj); }
+    catch (e) { setErr(e.message === 'shape' ? 'JSON hợp lệ nhưng không phải file tiến độ của Study Hub (thiếu trường "checks").' : 'Nội dung không phải JSON hợp lệ. Kiểm tra lại file export.'); }
+  };
+  return html`<${Modal} title="Import JSON" onClose=${onClose} wide=${true}>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-400">Chọn file <code className="inl">sd-progress-*.json</code> hoặc dán nội dung. Toàn bộ tiến độ hiện tại sẽ được thay bằng dữ liệu trong file.</p>
+      <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="import-file">File JSON<input id="import-file" type="file" accept=".json,application/json" onChange=${onFile} className="text-sm text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-sm file:text-slate-100" /></label>
+      <textarea id="import-json" rows="10" className=${inputCls + ' tnum text-xs'} placeholder='{"v":1,"checks":{…}}' value=${text} onChange=${e => { setText(e.target.value); setErr(''); }}></textarea>
+      ${err ? html`<p className="text-sm text-rose-300" role="alert">${err}</p>` : null}
+      <div className="flex justify-end gap-2"><button className=${B('ghost')} onClick=${onClose}>Huỷ</button><button className=${B('primary')} disabled=${!text.trim()} onClick=${go}><${Icon} n="upload" />Khôi phục</button></div>
+    </div><//>`;
+}
+function ResetModal({ onReset, onClose }) {
+  const [typed, setTyped] = useState('');
+  return html`<${Modal} title="Reset progress" onClose=${onClose}>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-300">Thao tác này xoá toàn bộ checkbox, câu trả lời, design doc, thẻ tự thêm và sổ tay lỗ hổng trên trình duyệt này. Nên Export JSON trước.</p>
+      <label className="flex flex-col gap-1 text-xs text-slate-400" htmlFor="reset-confirm">Gõ RESET để xác nhận<input id="reset-confirm" className=${inputCls + ' tnum'} value=${typed} onChange=${e => setTyped(e.target.value)} autoComplete="off" /></label>
+      <div className="flex justify-end gap-2"><button className=${B('ghost')} onClick=${onClose}>Huỷ</button><button className=${B('danger')} disabled=${typed.trim() !== 'RESET'} onClick=${onReset}><${Icon} n="trash" />Xoá toàn bộ tiến độ</button></div>
+    </div><//>`;
+}
+
+/* =========================================================
+   APP SHELL
+   ========================================================= */
+const NAV = [
+  { id: 'dashboard', label: 'Tổng quan', icon: 'grid' },
+  { id: 'roadmap', label: 'Lộ trình 15 tuần', icon: 'route' },
+  { id: 'mock', label: 'Phòng luyện đề', icon: 'timer' },
+  { id: 'cards', label: 'Thẻ trade-off', icon: 'layers' },
+  { id: 'cheat', label: 'Cheat sheet', icon: 'calc' },
+  { id: 'checklist', label: 'Checklist & lỗ hổng', icon: 'listcheck' }
+];
+function App() {
+  const [S, setS] = useState(loadState);
+  const [saveState, setSaveState] = useState('saved');
+  const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState('');
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setSaveState('saving');
+    const t = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); setSaveState('saved'); } catch (e) { setSaveState('error'); } }, 350);
+    return () => clearTimeout(t);
+  }, [S]);
+  const set = useCallback((path, val) => setS(s => setIn(s, path, typeof val === 'function' ? val(getIn(s, path)) : val)), []);
+  const stats = useMemo(() => computeStats(S.checks), [S.checks]);
+  const page = S.ui.page;
+  const go = useCallback((p, opts) => { setS(s => Object.assign({}, s, { ui: Object.assign({}, s.ui, { page: p }, opts || {}) })); try { window.scrollTo({ top: 0 }); } catch (e) { } }, []);
+  const flash = m => { setToast(m); setTimeout(() => setToast(''), 3000); };
+  const cur = NAV.find(n => n.id === page) || NAV[0];
+
+  const saveLabel = { saving: 'Đang lưu…', saved: 'Đã lưu trên trình duyệt này', error: 'Không lưu được (trình duyệt chặn bộ nhớ)' }[saveState];
+  const body = { dashboard: Dashboard, roadmap: Roadmap, mock: MockStudio, cards: Cards, cheat: Cheat, checklist: Checklist }[page] || Dashboard;
+
+  return html`<div className="min-h-[100dvh] lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <aside className="border-b border-slate-800 bg-slate-950 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col lg:border-b-0 lg:border-r">
+      <div className="gutter flex items-center gap-3 pt-4 pb-3 lg:px-5 lg:pt-6">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-indigo-500/50 bg-indigo-500/15 font-mono text-[11px] font-semibold text-indigo-200">SD</div>
+        <div className="min-w-0"><div className="text-sm font-semibold text-slate-50">System Design Study Hub</div><div className="tnum text-[11px] text-slate-500">Senior · 15 tuần · ~165 giờ</div></div>
+      </div>
+      <nav className="gutter noscrollbar scroll-x flex gap-1 pb-3 lg:flex-col lg:overflow-visible lg:px-3 lg:pb-0" aria-label="Điều hướng">
+        ${NAV.map(n => html`<button key=${n.id} onClick=${() => go(n.id)} aria-current=${page === n.id ? 'page' : null}
+          className=${`flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${page === n.id ? 'bg-slate-800 text-slate-50' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>
+          <${Icon} n=${n.icon} className=${page === n.id ? 'text-indigo-300' : ''} />${n.label}</button>`)}
+      </nav>
+      <div className="hidden lg:mt-auto lg:block lg:border-t lg:border-slate-800 lg:p-5">
+        <div className="flex items-baseline justify-between"><${Eyebrow}>Tiến độ tổng<//><span className="tnum text-sm font-semibold text-slate-100">${Math.round(stats.pct * 100)}%</span></div>
+        <div className="mt-2"><${Bar} value=${stats.pct} h="h-2" /></div>
+        <div className="mt-4 flex flex-col gap-2">${PHASES.map(p => { const ps = stats.phase[p.id]; return html`<div key=${p.id} className="flex items-center gap-2"><span className="tnum w-6 text-[11px] text-slate-500">P${p.id}</span><div className="flex-1"><${Bar} value=${ps.total ? ps.done / ps.total : 0} cls=${KIND[p.kind].bar} h="h-1" /></div></div>`; })}</div>
+        <div className="tnum mt-4 text-[11px] text-slate-500">${fmt(stats.hours, 0)} / 165 giờ · ${stats.done}/${stats.total} mục</div>
+      </div>
+      <div className="gutter pb-3 lg:hidden"><${Bar} value=${stats.pct} /></div>
+    </aside>
+
+    <div className="min-w-0">
+      <header className="sticky z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur" style=${{ top: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="gutter mx-auto flex max-w-[1400px] items-center gap-3 py-3">
+          <div className="flex min-w-0 items-center gap-2"><${Icon} n=${cur.icon} className="text-indigo-300" /><span className="truncate text-sm font-semibold text-slate-100">${cur.label}</span></div>
+          <span className=${'hidden truncate text-xs md:inline ' + (saveState === 'error' ? 'text-rose-300' : 'text-slate-500')}>${saveLabel}</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs'} onClick=${() => setModal('export')} title="Export JSON"><${Icon} n="download" s=${14} /><span className="hidden sm:inline">Export</span></button>
+            <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs'} onClick=${() => setModal('import')} title="Import JSON"><${Icon} n="upload" s=${14} /><span className="hidden sm:inline">Import</span></button>
+            <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs text-rose-300 hover:text-rose-200'} onClick=${() => setModal('reset')} title="Reset progress"><${Icon} n="reset" s=${14} /><span className="hidden sm:inline">Reset</span></button>
+          </div>
+        </div>
+      </header>
+      <main className="gutter mx-auto max-w-[1400px] pt-6 pb-16" style=${{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
+        <${body} S=${S} set=${set} stats=${stats} go=${go} />
+      </main>
+    </div>
+
+    ${modal === 'export' ? html`<${ExportModal} S=${S} onClose=${() => setModal(null)} />` : null}
+    ${modal === 'import' ? html`<${ImportModal} onClose=${() => setModal(null)} onImport=${obj => { setS(mergeState(obj)); setModal(null); flash('Đã khôi phục tiến độ từ JSON.'); }} />` : null}
+    ${modal === 'reset' ? html`<${ResetModal} onClose=${() => setModal(null)} onReset=${() => { setS(mergeState(null)); setModal(null); flash('Đã xoá toàn bộ tiến độ.'); }} />` : null}
+    ${toast ? html`<div role="status" className="fixed left-1/2 z-50 -translate-x-1/2 rounded-md border border-emerald-500/40 bg-slate-900 px-4 py-2 text-sm text-emerald-200 shadow-xl" style=${{ bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>${toast}</div>` : null}
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+})();
+</script>
