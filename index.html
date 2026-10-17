@@ -8,11 +8,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script>
+  /* Apply saved theme (or the OS preference) before first paint. */
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('sd_theme'); } catch (e) { }
+    if (t !== 'light' && t !== 'dark') t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script>
   tailwind.config = {
     theme: {
       extend: {
+        colors: {
+          slate: {50: 'rgb(var(--c-slate-50) / <alpha-value>)', 100: 'rgb(var(--c-slate-100) / <alpha-value>)', 200: 'rgb(var(--c-slate-200) / <alpha-value>)', 300: 'rgb(var(--c-slate-300) / <alpha-value>)', 400: 'rgb(var(--c-slate-400) / <alpha-value>)', 500: 'rgb(var(--c-slate-500) / <alpha-value>)', 600: 'rgb(var(--c-slate-600) / <alpha-value>)', 700: 'rgb(var(--c-slate-700) / <alpha-value>)', 800: 'rgb(var(--c-slate-800) / <alpha-value>)', 900: 'rgb(var(--c-slate-900) / <alpha-value>)', 950: 'rgb(var(--c-slate-950) / <alpha-value>)'},
+          indigo: {50: 'rgb(var(--c-indigo-50) / <alpha-value>)', 100: 'rgb(var(--c-indigo-100) / <alpha-value>)', 200: 'rgb(var(--c-indigo-200) / <alpha-value>)', 300: 'rgb(var(--c-indigo-300) / <alpha-value>)', 400: 'rgb(var(--c-indigo-400) / <alpha-value>)', 500: 'rgb(var(--c-indigo-500) / <alpha-value>)', 600: 'rgb(var(--c-indigo-600) / <alpha-value>)', 700: 'rgb(var(--c-indigo-700) / <alpha-value>)', 800: 'rgb(var(--c-indigo-800) / <alpha-value>)', 900: 'rgb(var(--c-indigo-900) / <alpha-value>)', 950: 'rgb(var(--c-indigo-950) / <alpha-value>)'},
+          emerald: {50: 'rgb(var(--c-emerald-50) / <alpha-value>)', 100: 'rgb(var(--c-emerald-100) / <alpha-value>)', 200: 'rgb(var(--c-emerald-200) / <alpha-value>)', 300: 'rgb(var(--c-emerald-300) / <alpha-value>)', 400: 'rgb(var(--c-emerald-400) / <alpha-value>)', 500: 'rgb(var(--c-emerald-500) / <alpha-value>)', 600: 'rgb(var(--c-emerald-600) / <alpha-value>)', 700: 'rgb(var(--c-emerald-700) / <alpha-value>)', 800: 'rgb(var(--c-emerald-800) / <alpha-value>)', 900: 'rgb(var(--c-emerald-900) / <alpha-value>)', 950: 'rgb(var(--c-emerald-950) / <alpha-value>)'},
+          amber: {50: 'rgb(var(--c-amber-50) / <alpha-value>)', 100: 'rgb(var(--c-amber-100) / <alpha-value>)', 200: 'rgb(var(--c-amber-200) / <alpha-value>)', 300: 'rgb(var(--c-amber-300) / <alpha-value>)', 400: 'rgb(var(--c-amber-400) / <alpha-value>)', 500: 'rgb(var(--c-amber-500) / <alpha-value>)', 600: 'rgb(var(--c-amber-600) / <alpha-value>)', 700: 'rgb(var(--c-amber-700) / <alpha-value>)', 800: 'rgb(var(--c-amber-800) / <alpha-value>)', 900: 'rgb(var(--c-amber-900) / <alpha-value>)', 950: 'rgb(var(--c-amber-950) / <alpha-value>)'},
+          rose: {50: 'rgb(var(--c-rose-50) / <alpha-value>)', 100: 'rgb(var(--c-rose-100) / <alpha-value>)', 200: 'rgb(var(--c-rose-200) / <alpha-value>)', 300: 'rgb(var(--c-rose-300) / <alpha-value>)', 400: 'rgb(var(--c-rose-400) / <alpha-value>)', 500: 'rgb(var(--c-rose-500) / <alpha-value>)', 600: 'rgb(var(--c-rose-600) / <alpha-value>)', 700: 'rgb(var(--c-rose-700) / <alpha-value>)', 800: 'rgb(var(--c-rose-800) / <alpha-value>)', 900: 'rgb(var(--c-rose-900) / <alpha-value>)', 950: 'rgb(var(--c-rose-950) / <alpha-value>)'},
+          sky: {50: 'rgb(var(--c-sky-50) / <alpha-value>)', 100: 'rgb(var(--c-sky-100) / <alpha-value>)', 200: 'rgb(var(--c-sky-200) / <alpha-value>)', 300: 'rgb(var(--c-sky-300) / <alpha-value>)', 400: 'rgb(var(--c-sky-400) / <alpha-value>)', 500: 'rgb(var(--c-sky-500) / <alpha-value>)', 600: 'rgb(var(--c-sky-600) / <alpha-value>)', 700: 'rgb(var(--c-sky-700) / <alpha-value>)', 800: 'rgb(var(--c-sky-800) / <alpha-value>)', 900: 'rgb(var(--c-sky-900) / <alpha-value>)', 950: 'rgb(var(--c-sky-950) / <alpha-value>)'}
+        },
         fontFamily: {
           sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
           mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
@@ -36,7 +53,173 @@
     --warn: #f59e0b;
     --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
     --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --sel: rgba(99,102,241,.35); --thumb: #1e293b;
+    --code-bg: rgba(148,163,184,.12); --code-bd: rgba(148,163,184,.18); --code-ink: #c7d2fe;
+    --l-text: #cbd5e1; --l-strong: #f1f5f9; --l-h3: #e2e8f0; --l-link: #a5b4fc; --l-marker: #64748b;
+    --l-pre: #020617; --l-pre-ink: #e2e8f0; --l-th: #0f172a;
+    --l-quote-bd: #f59e0b; --l-quote-bg: rgba(245,158,11,.06); --l-quote-ink: #fde68a;
+    --l-det-bg: rgba(2,6,23,.6); --l-q: #fbbf24; --l-ans: #d1fae5;
+    --l-tldr-bd: rgba(99,102,241,.4); --l-tldr-bg: rgba(99,102,241,.08); --l-tldr-ink: #e0e7ff;
+    --dg-box: #0f172a; --dg-box-bd: #334155;
+    --dg-hl: #12163a; --dg-hl-bd: #6366f1; --dg-ok: #04211d; --dg-ok-bd: #10b981;
+    --dg-bad: #240b18; --dg-bad-bd: #f43f5e; --dg-warn: #21180b; --dg-warn-bd: #f59e0b;
+    --dg-text: #e2e8f0; --dg-text-s: #94a3b8; --dg-text-m: #c7d2fe;
+    --dg-ln: #64748b; --dg-ln-hl: #818cf8; --dg-ln-bad: #f43f5e; --dg-ln-ok: #34d399; --dg-arrow: #94a3b8;
+    --dg-t-bad: #fda4af; --dg-t-ok: #34d399; --dg-t-hl: #a5b4fc;
+    --c-slate-50: 248 250 252;
+    --c-slate-100: 241 245 249;
+    --c-slate-200: 226 232 240;
+    --c-slate-300: 203 213 225;
+    --c-slate-400: 148 163 184;
+    --c-slate-500: 100 116 139;
+    --c-slate-600: 71 85 105;
+    --c-slate-700: 51 65 85;
+    --c-slate-800: 30 41 59;
+    --c-slate-900: 15 23 42;
+    --c-slate-950: 2 6 23;
+    --c-indigo-50: 238 242 255;
+    --c-indigo-100: 224 231 255;
+    --c-indigo-200: 199 210 254;
+    --c-indigo-300: 165 180 252;
+    --c-indigo-400: 129 140 248;
+    --c-indigo-500: 99 102 241;
+    --c-indigo-600: 79 70 229;
+    --c-indigo-700: 67 56 202;
+    --c-indigo-800: 55 48 163;
+    --c-indigo-900: 49 46 129;
+    --c-indigo-950: 30 27 75;
+    --c-emerald-50: 236 253 245;
+    --c-emerald-100: 209 250 229;
+    --c-emerald-200: 167 243 208;
+    --c-emerald-300: 110 231 183;
+    --c-emerald-400: 52 211 153;
+    --c-emerald-500: 16 185 129;
+    --c-emerald-600: 5 150 105;
+    --c-emerald-700: 4 120 87;
+    --c-emerald-800: 6 95 70;
+    --c-emerald-900: 6 78 59;
+    --c-emerald-950: 2 44 34;
+    --c-amber-50: 255 251 235;
+    --c-amber-100: 254 243 199;
+    --c-amber-200: 253 230 138;
+    --c-amber-300: 252 211 77;
+    --c-amber-400: 251 191 36;
+    --c-amber-500: 245 158 11;
+    --c-amber-600: 217 119 6;
+    --c-amber-700: 180 83 9;
+    --c-amber-800: 146 64 14;
+    --c-amber-900: 120 53 15;
+    --c-amber-950: 69 26 3;
+    --c-rose-50: 255 241 242;
+    --c-rose-100: 255 228 230;
+    --c-rose-200: 254 205 211;
+    --c-rose-300: 253 164 175;
+    --c-rose-400: 251 113 133;
+    --c-rose-500: 244 63 94;
+    --c-rose-600: 225 29 72;
+    --c-rose-700: 190 18 60;
+    --c-rose-800: 159 18 57;
+    --c-rose-900: 136 19 55;
+    --c-rose-950: 76 5 25;
+    --c-sky-50: 240 249 255;
+    --c-sky-100: 224 242 254;
+    --c-sky-200: 186 230 253;
+    --c-sky-300: 125 211 252;
+    --c-sky-400: 56 189 248;
+    --c-sky-500: 14 165 233;
+    --c-sky-600: 2 132 199;
+    --c-sky-700: 3 105 161;
+    --c-sky-800: 7 89 133;
+    --c-sky-900: 12 74 110;
+    --c-sky-950: 8 47 73;
     color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #eef2f6;
+    --panel: #ffffff;
+    --line: #e2e8f0;
+    --ink: #0f172a;
+    --muted: #475569;
+    --sel: rgba(99,102,241,.22); --thumb: #cbd5e1;
+    --code-bg: rgba(99,102,241,.07); --code-bd: rgba(99,102,241,.18); --code-ink: #3730a3;
+    --l-text: #334155; --l-strong: #0f172a; --l-h3: #1e293b; --l-link: #4338ca; --l-marker: #94a3b8;
+    --l-pre: #f1f5f9; --l-pre-ink: #0f172a; --l-th: #f1f5f9;
+    --l-quote-bd: #d97706; --l-quote-bg: #fffbeb; --l-quote-ink: #78350f;
+    --l-det-bg: #ffffff; --l-q: #b45309; --l-ans: #065f46;
+    --l-tldr-bd: rgba(79,70,229,.35); --l-tldr-bg: #eef2ff; --l-tldr-ink: #312e81;
+    --dg-box: #ffffff; --dg-box-bd: #94a3b8;
+    --dg-hl: #eef2ff; --dg-hl-bd: #4f46e5; --dg-ok: #ecfdf5; --dg-ok-bd: #059669;
+    --dg-bad: #fff1f2; --dg-bad-bd: #e11d48; --dg-warn: #fffbeb; --dg-warn-bd: #d97706;
+    --dg-text: #0f172a; --dg-text-s: #475569; --dg-text-m: #3730a3;
+    --dg-ln: #64748b; --dg-ln-hl: #4f46e5; --dg-ln-bad: #e11d48; --dg-ln-ok: #059669; --dg-arrow: #64748b;
+    --dg-t-bad: #be123c; --dg-t-ok: #047857; --dg-t-hl: #4338ca;
+    --c-slate-50: 2 6 23;
+    --c-slate-100: 15 23 42;
+    --c-slate-200: 30 41 59;
+    --c-slate-300: 51 65 85;
+    --c-slate-400: 71 85 105;
+    --c-slate-500: 100 116 139;
+    --c-slate-600: 148 163 184;
+    --c-slate-700: 203 213 225;
+    --c-slate-800: 226 232 240;
+    --c-slate-900: 255 255 255;
+    --c-slate-950: 248 250 252;
+    --c-indigo-50: 30 27 75;
+    --c-indigo-100: 49 46 129;
+    --c-indigo-200: 55 48 163;
+    --c-indigo-300: 67 56 202;
+    --c-indigo-400: 79 70 229;
+    --c-indigo-500: 99 102 241;
+    --c-indigo-600: 79 70 229;
+    --c-indigo-700: 67 56 202;
+    --c-indigo-800: 55 48 163;
+    --c-indigo-900: 49 46 129;
+    --c-indigo-950: 30 27 75;
+    --c-emerald-50: 2 44 34;
+    --c-emerald-100: 6 78 59;
+    --c-emerald-200: 6 95 70;
+    --c-emerald-300: 4 120 87;
+    --c-emerald-400: 5 150 105;
+    --c-emerald-500: 16 185 129;
+    --c-emerald-600: 5 150 105;
+    --c-emerald-700: 4 120 87;
+    --c-emerald-800: 6 95 70;
+    --c-emerald-900: 6 78 59;
+    --c-emerald-950: 2 44 34;
+    --c-amber-50: 69 26 3;
+    --c-amber-100: 120 53 15;
+    --c-amber-200: 146 64 14;
+    --c-amber-300: 180 83 9;
+    --c-amber-400: 217 119 6;
+    --c-amber-500: 245 158 11;
+    --c-amber-600: 217 119 6;
+    --c-amber-700: 180 83 9;
+    --c-amber-800: 146 64 14;
+    --c-amber-900: 120 53 15;
+    --c-amber-950: 69 26 3;
+    --c-rose-50: 76 5 25;
+    --c-rose-100: 136 19 55;
+    --c-rose-200: 159 18 57;
+    --c-rose-300: 190 18 60;
+    --c-rose-400: 225 29 72;
+    --c-rose-500: 244 63 94;
+    --c-rose-600: 225 29 72;
+    --c-rose-700: 190 18 60;
+    --c-rose-800: 159 18 57;
+    --c-rose-900: 136 19 55;
+    --c-rose-950: 76 5 25;
+    --c-sky-50: 8 47 73;
+    --c-sky-100: 12 74 110;
+    --c-sky-200: 7 89 133;
+    --c-sky-300: 3 105 161;
+    --c-sky-400: 2 132 199;
+    --c-sky-500: 14 165 233;
+    --c-sky-600: 2 132 199;
+    --c-sky-700: 3 105 161;
+    --c-sky-800: 7 89 133;
+    --c-sky-900: 12 74 110;
+    --c-sky-950: 8 47 73;
+    color-scheme: light;
   }
   html, body { background: var(--bg); color: var(--ink); }
   body { font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
@@ -46,63 +229,64 @@
   h1, h2, h3 { text-wrap: balance; }
   .prose-line { max-width: 72ch; }
   textarea, input, select { font-family: var(--font-ui); }
-  ::selection { background: rgba(99, 102, 241, .35); }
+  ::selection { background: var(--sel); }
   .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .noscrollbar::-webkit-scrollbar { display: none; }
   .noscrollbar { scrollbar-width: none; }
   *::-webkit-scrollbar { width: 10px; height: 10px; }
-  *::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; border: 2px solid var(--bg); }
-  code.inl { font-family: var(--font-data); font-size: .86em; background: rgba(148, 163, 184, .12); border: 1px solid rgba(148, 163, 184, .18); padding: 0 .3em; border-radius: 4px; color: #c7d2fe; }
+  *::-webkit-scrollbar-thumb { background: var(--thumb); border-radius: 8px; border: 2px solid var(--bg); }
+  code.inl { font-family: var(--font-data); font-size: .86em; background: var(--code-bg); border: 1px solid var(--code-bd); padding: 0 .3em; border-radius: 4px; color: var(--code-ink); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   /* ---- Lesson reader: long-form reading column ---- */
-  .lesson { font-size: 15.5px; line-height: 1.75; color: #cbd5e1; max-width: 74ch; }
+  .lesson { font-size: 15.5px; line-height: 1.75; color: var(--l-text); max-width: 74ch; }
   .lesson > * + * { margin-top: .9em; }
-  .lesson h2 { margin-top: 2em; font-size: 1.15em; font-weight: 600; color: #f1f5f9; padding-bottom: .35em; border-bottom: 1px solid var(--line); }
+  .lesson h2 { margin-top: 2em; font-size: 1.15em; font-weight: 600; color: var(--l-strong); padding-bottom: .35em; border-bottom: 1px solid var(--line); }
   .lesson h2:first-child { margin-top: 0; }
-  .lesson h3 { margin-top: 1.5em; font-size: 1em; font-weight: 600; color: #e2e8f0; }
-  .lesson strong { color: #f1f5f9; font-weight: 600; }
-  .lesson a { color: #a5b4fc; text-decoration: underline; text-underline-offset: 3px; }
+  .lesson h3 { margin-top: 1.5em; font-size: 1em; font-weight: 600; color: var(--l-h3); }
+  .lesson strong { color: var(--l-strong); font-weight: 600; }
+  .lesson a { color: var(--l-link); text-decoration: underline; text-underline-offset: 3px; }
   .lesson ul, .lesson ol { padding-left: 1.4em; }
   .lesson ul { list-style: disc; } .lesson ol { list-style: decimal; }
   .lesson li + li { margin-top: .35em; }
-  .lesson li::marker { color: #64748b; }
-  .lesson code { font-family: var(--font-data); font-size: .85em; background: rgba(148,163,184,.12); border: 1px solid rgba(148,163,184,.18); padding: 0 .3em; border-radius: 4px; color: #c7d2fe; }
-  .lesson pre { background: #020617; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
-  .lesson pre code { background: none; border: 0; padding: 0; color: #e2e8f0; font-size: inherit; }
+  .lesson li::marker { color: var(--l-marker); }
+  .lesson code { font-family: var(--font-data); font-size: .85em; background: var(--code-bg); border: 1px solid var(--code-bd); padding: 0 .3em; border-radius: 4px; color: var(--code-ink); }
+  .lesson pre { background: var(--l-pre); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+  .lesson pre code { background: none; border: 0; padding: 0; color: var(--l-pre-ink); font-size: inherit; }
   .lesson table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 14px; line-height: 1.55; }
   .lesson th, .lesson td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; min-width: 110px; }
-  .lesson th { background: #0f172a; color: #f1f5f9; font-weight: 600; }
-  .lesson blockquote { border-left: 3px solid #f59e0b; background: rgba(245,158,11,.06); padding: 10px 14px; border-radius: 0 8px 8px 0; color: #fde68a; }
+  .lesson th { background: var(--l-th); color: var(--l-strong); font-weight: 600; }
+  .lesson blockquote { border-left: 3px solid var(--l-quote-bd); background: var(--l-quote-bg); padding: 10px 14px; border-radius: 0 8px 8px 0; color: var(--l-quote-ink); }
   .lesson blockquote p + p { margin-top: .6em; }
   .lesson hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
-  .lesson details { border: 1px solid var(--line); border-radius: 8px; background: rgba(2,6,23,.6); padding: 10px 14px; }
+  .lesson details { border: 1px solid var(--line); border-radius: 8px; background: var(--l-det-bg); padding: 10px 14px; }
   .lesson details + details { margin-top: .6em; }
-  .lesson summary { cursor: pointer; font-weight: 500; color: #f1f5f9; list-style: none; }
+  .lesson summary { cursor: pointer; font-weight: 500; color: var(--l-strong); list-style: none; }
   .lesson summary::-webkit-details-marker { display: none; }
-  .lesson summary::before { content: "Q"; font-family: var(--font-data); font-size: 12px; color: #fbbf24; margin-right: .6em; }
+  .lesson summary::before { content: "Q"; font-family: var(--font-data); font-size: 12px; color: var(--l-q); margin-right: .6em; }
   .lesson details[open] summary { margin-bottom: .6em; padding-bottom: .5em; border-bottom: 1px dashed var(--line); }
-  .lesson details[open] > :not(summary) { color: #d1fae5; }
-  .lesson .tldr { border: 1px solid rgba(99,102,241,.4); background: rgba(99,102,241,.08); border-radius: 10px; padding: 12px 16px; color: #e0e7ff; }
+  .lesson details[open] > :not(summary) { color: var(--l-ans); }
+  .lesson .tldr { border: 1px solid var(--l-tldr-bd); background: var(--l-tldr-bg); border-radius: 10px; padding: 12px 16px; color: var(--l-tldr-ink); }
   .lesson figure { margin: 1.4em 0; }
   .lesson figure svg { display: block; width: 100%; height: auto; max-width: 680px; }
   .lesson figcaption { margin-top: .5em; font-size: 13px; color: var(--muted); }
-  .dg .bx { fill: #0f172a; stroke: #334155; stroke-width: 1.2; }
-  .dg .bx.hl { fill: #12163a; stroke: #6366f1; }
-  .dg .bx.ok { fill: #04211d; stroke: #10b981; }
-  .dg .bx.bad { fill: #240b18; stroke: #f43f5e; }
-  .dg .bx.warn { fill: #21180b; stroke: #f59e0b; }
-  .dg text { fill: #e2e8f0; font-family: var(--font-ui); font-size: 13px; }
-  .dg text.s { fill: #94a3b8; font-size: 11.5px; }
-  .dg text.m { font-family: var(--font-data); font-size: 11.5px; fill: #c7d2fe; }
-  .dg .ln { stroke: #64748b; stroke-width: 1.4; fill: none; }
-  .dg .ln.hl { stroke: #818cf8; } .dg .ln.bad { stroke: #f43f5e; stroke-dasharray: 5 4; } .dg .ln.ok { stroke: #34d399; }
+  .dg .bx { fill: var(--dg-box); stroke: var(--dg-box-bd); stroke-width: 1.2; }
+  .dg .bx.hl { fill: var(--dg-hl); stroke: var(--dg-hl-bd); }
+  .dg .bx.ok { fill: var(--dg-ok); stroke: var(--dg-ok-bd); }
+  .dg .bx.bad { fill: var(--dg-bad); stroke: var(--dg-bad-bd); }
+  .dg .bx.warn { fill: var(--dg-warn); stroke: var(--dg-warn-bd); }
+  .dg text { fill: var(--dg-text); font-family: var(--font-ui); font-size: 13px; }
+  .dg text.s { fill: var(--dg-text-s); font-size: 11.5px; }
+  .dg text.m { font-family: var(--font-data); font-size: 11.5px; fill: var(--dg-text-m); }
+  .dg text[data-c=bad] { fill: var(--dg-t-bad); } .dg text[data-c=ok] { fill: var(--dg-t-ok); } .dg text[data-c=hl] { fill: var(--dg-t-hl); }
+  .dg .ln { stroke: var(--dg-ln); stroke-width: 1.4; fill: none; }
+  .dg .ln.hl { stroke: var(--dg-ln-hl); } .dg .ln.bad { stroke: var(--dg-ln-bad); stroke-dasharray: 5 4; } .dg .ln.ok { stroke: var(--dg-ln-ok); }
   .dg .ar { marker-end: url(#arr); }
   #boot { padding: 48px 24px; color: var(--muted); font-family: var(--font-data); font-size: 13px; }
 </style>
 
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--dg-arrow)"/></marker></defs></svg>
 <div id="root"><div id="boot">Đang nạp System Design Study Hub…</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
@@ -151,6 +335,8 @@ const ICONS = {
   alert: [['path', { d: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3' }], ['path', { d: 'M12 9v4M12 17h.01' }]],
   mic: [['path', { d: 'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z' }], ['path', { d: 'M19 10v2a7 7 0 0 1-14 0v-2M12 19v3' }]],
   save: [['path', { d: 'M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z' }], ['path', { d: 'M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7' }]],
+  sun: [['circle', { cx: 12, cy: 12, r: 4 }], ['path', { d: 'M12 2v2' }], ['path', { d: 'M12 20v2' }], ['path', { d: 'm4.93 4.93 1.41 1.41' }], ['path', { d: 'm17.66 17.66 1.41 1.41' }], ['path', { d: 'M2 12h2' }], ['path', { d: 'M20 12h2' }], ['path', { d: 'm6.34 17.66-1.41 1.41' }], ['path', { d: 'm19.07 4.93-1.41 1.41' }]],
+  moon: [['path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z' }]],
   db: [['ellipse', { cx: 12, cy: 5, rx: 9, ry: 3 }], ['path', { d: 'M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0' }]]
 };
 function Icon({ n, s = 16, className = '' }) {
@@ -597,7 +783,7 @@ const btn = {
   ghost: 'border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 px-3 py-2',
   quiet: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 px-2 py-1.5',
   ok: 'bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2',
-  warn: 'bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2',
+  warn: 'bg-amber-500 hover:bg-amber-400 text-black px-3 py-2',
   danger: 'bg-rose-600 hover:bg-rose-500 text-white px-3 py-2'
 };
 const B = (k) => btn.base + ' ' + btn[k];
@@ -1460,6 +1646,13 @@ const NAV = [
 ];
 function App() {
   const [S, setS] = useState(loadState);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  const toggleTheme = () => {
+    const t = theme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('sd_theme', t); } catch (e) { }
+    setTheme(t);
+  };
   const [saveState, setSaveState] = useState('saved');
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState('');
@@ -1506,6 +1699,7 @@ function App() {
           <div className="flex min-w-0 items-center gap-2"><${Icon} n=${cur.icon} className="text-indigo-300" /><span className="truncate text-sm font-semibold text-slate-100">${cur.label}</span></div>
           <span className=${'hidden truncate text-xs md:inline ' + (saveState === 'error' ? 'text-rose-300' : 'text-slate-500')}>${saveLabel}</span>
           <div className="ml-auto flex items-center gap-1.5">
+            <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs'} onClick=${toggleTheme} aria-label=${theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'} title=${theme === 'light' ? 'Giao diện tối' : 'Giao diện sáng'}><${Icon} n=${theme === 'light' ? 'moon' : 'sun'} s=${14} /></button>
             <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs'} onClick=${() => setModal('export')} title="Export JSON"><${Icon} n="download" s=${14} /><span className="hidden sm:inline">Export</span></button>
             <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs'} onClick=${() => setModal('import')} title="Import JSON"><${Icon} n="upload" s=${14} /><span className="hidden sm:inline">Import</span></button>
             <button className=${B('ghost') + ' px-2.5 py-1.5 text-xs text-rose-300 hover:text-rose-200'} onClick=${() => setModal('reset')} title="Reset progress"><${Icon} n="reset" s=${14} /><span className="hidden sm:inline">Reset</span></button>
